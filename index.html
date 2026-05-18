@@ -1,0 +1,2534 @@
+<!-- fretboard-trainer/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0d0f">
+<title>Fretboard Trainer</title>
+<style>
+/* =========================================================
+   CSS CUSTOM PROPERTIES & RESET
+   ========================================================= */
+:root {
+  --bg: #0d0d0f;
+  --bg-elevated: #14141a;
+  --bg-card: #1a1a22;
+  --surface: #22222e;
+  --border: #2e2e3e;
+  --text-primary: #f0eee8;
+  --text-secondary: #8a8899;
+  --text-muted: #4a4a5e;
+  --accent-amber: #e8a020;
+  --accent-green: #38c070;
+  --accent-red: #e84040;
+  --accent-blue: #4090e8;
+  --note-glow: rgba(240, 238, 232, 0.06);
+  --beat-pulse: rgba(232, 160, 32, 0.05);
+  --font-display: 'Courier New', 'Lucida Console', monospace;
+  --font-body: 'Georgia', 'Times New Roman', serif;
+  --font-ui: system-ui, -apple-system, sans-serif;
+  --radius: 6px;
+  --nav-height: 56px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* =========================================================
+   SCREEN SYSTEM
+   ========================================================= */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+.screen.active { display: flex; }
+
+/* =========================================================
+   NAVIGATION BAR
+   ========================================================= */
+.nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--nav-height);
+  background: rgba(13, 13, 15, 0.96);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.nav-btn.active { color: var(--accent-amber); }
+.nav-btn svg { width: 20px; height: 20px; }
+
+/* =========================================================
+   SCROLL CONTAINER (stats/settings)
+   ========================================================= */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 20px calc(var(--nav-height) + 20px);
+}
+
+/* =========================================================
+   BEAT PULSE OVERLAY
+   Smooth ambient throb — keyframe rises and falls in one
+   continuous motion, no hard snap on/off.
+   ========================================================= */
+#beat-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--beat-pulse);
+  opacity: 0;
+}
+#beat-flash.pulse {
+  animation: beat-pulse-anim 0.35s ease-out forwards;
+}
+@keyframes beat-pulse-anim {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* =========================================================
+   PRACTICE SCREEN
+   ========================================================= */
+#screen-practice {
+  background: var(--bg);
+  padding-bottom: var(--nav-height);
+}
+
+/* Top bar: BPM + auto-progression indicator */
+.practice-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 20px 8px;
+  gap: 10px;
+  position: relative;
+}
+
+.bpm-display {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.bpm-value {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  transition: transform 0.2s, color 0.2s;
+}
+.bpm-value.bump {
+  transform: scale(1.25);
+  color: var(--accent-amber);
+}
+
+.bpm-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.bpm-arrow {
+  width: 14px; height: 14px;
+  opacity: 0;
+  color: var(--accent-green);
+  transition: opacity 0.3s;
+}
+.bpm-arrow.visible { opacity: 1; }
+
+/* Centre note zone */
+.note-zone {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 0;
+}
+
+.note-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+
+/* Dominant note name */
+.note-name {
+  font-family: var(--font-display);
+  font-size: clamp(96px, 28vw, 140px);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-shadow:
+    0 0 60px rgba(240,238,232,0.08),
+    0 0 120px rgba(240,238,232,0.03);
+  transition: opacity 0.15s;
+  user-select: none;
+}
+.note-name.dim { opacity: 0.15; }
+.note-name.flash {
+  animation: note-flash 0.3s ease-out;
+}
+
+@keyframes note-flash {
+  0%   { color: var(--accent-amber); text-shadow: 0 0 40px rgba(232,160,32,0.6); }
+  100% { color: var(--text-primary); text-shadow: 0 0 60px rgba(240,238,232,0.08); }
+}
+
+/* Vertical progression bar — slim, right edge of note zone */
+.prog-bar-wrap {
+  position: absolute;
+  right: 12px;
+  top: 10%;
+  bottom: 10%;
+  width: 5px;
+  background: var(--surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prog-bar-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 0%;
+  border-radius: 3px;
+  background: var(--accent-amber);
+  transition: height 0.4s ease, background-color 0.4s ease;
+}
+
+.prog-bar-fill.green { background: var(--accent-green); }
+
+@keyframes bar-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.prog-bar-fill.flash-anim {
+  animation: bar-flash 0.2s ease-in-out 3;
+}
+
+/* String indicators */
+.strings-row {
+  display: flex;
+  justify-content: center;
+  gap: clamp(8px, 3vw, 20px);
+  padding: 0 20px 10px;
+}
+
+.string-ind {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.string-dot {
+  width: clamp(32px, 10vw, 46px);
+  height: clamp(32px, 10vw, 46px);
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, border-color 0.1s, transform 0.1s, box-shadow 0.1s;
+  position: relative;
+}
+
+.string-dot.pending { border-color: var(--border); background: var(--bg-elevated); }
+.string-dot.active {
+  border-color: var(--accent-amber);
+  background: rgba(232,160,32,0.12);
+  box-shadow: 0 0 12px rgba(232,160,32,0.25);
+  animation: string-pulse 0.5s ease-in-out infinite alternate;
+}
+.string-dot.hit {
+  border-color: var(--accent-green);
+  background: rgba(56,192,112,0.18);
+  box-shadow: 0 0 10px rgba(56,192,112,0.3);
+}
+.string-dot.missed {
+  border-color: var(--accent-red);
+  background: rgba(232,64,64,0.12);
+}
+.string-dot.wrong {
+  border-color: #e87020;
+  background: rgba(232,112,32,0.12);
+}
+
+@keyframes string-pulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.08); box-shadow: 0 0 18px rgba(232,160,32,0.4); }
+}
+
+.string-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+/* SVG stave */
+.stave-wrap {
+  padding: 0 30px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#stave-svg {
+  width: 100%;
+  max-width: 300px;
+  height: 52px;
+  display: block;
+}
+
+/* Pause button */
+.pause-btn {
+  margin: 0 20px 12px;
+  height: 52px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.pause-btn:active { background: var(--surface); }
+
+/* Pause overlay */
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,13,15,0.88);
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  backdrop-filter: blur(8px);
+}
+.pause-overlay.active { display: flex; }
+
+.pause-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.pause-btn-lg {
+  width: 220px;
+  height: 56px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pause-btn-lg.primary {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  color: #0d0d0f;
+}
+.pause-btn-lg:active { opacity: 0.8; }
+
+/* Count-in overlay */
+.countin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,13,15,0.7);
+  z-index: 49;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.countin-overlay.active { display: flex; }
+.countin-num {
+  font-family: var(--font-display);
+  font-size: 120px;
+  font-weight: 700;
+  color: var(--accent-amber);
+  opacity: 0;
+  animation: countin-pop 0.5s ease-out forwards;
+}
+@keyframes countin-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  30%  { opacity: 1; transform: scale(1.1); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* =========================================================
+   START SCREEN (session not started)
+   ========================================================= */
+.start-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 30px;
+}
+
+.start-logo {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.start-note {
+  font-family: var(--font-display);
+  font-size: clamp(80px, 24vw, 120px);
+  font-weight: 700;
+  color: var(--text-primary);
+  opacity: 0.1;
+  line-height: 1;
+}
+
+.start-btn {
+  width: 100%;
+  max-width: 260px;
+  height: 60px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-amber);
+  background: transparent;
+  color: var(--accent-amber);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.start-btn:active { background: rgba(232,160,32,0.1); }
+
+/* =========================================================
+   SESSION SUMMARY SCREEN
+   ========================================================= */
+#screen-summary {
+  background: var(--bg);
+  padding-bottom: var(--nav-height);
+}
+
+.summary-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px 20px;
+}
+
+.summary-header {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.summary-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.summary-stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+.summary-stat-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.summary-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+.summary-actions button {
+  flex: 1;
+  height: 52px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.summary-actions button.primary {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  color: #0d0d0f;
+}
+
+/* =========================================================
+   STATS SCREEN
+   ========================================================= */
+#screen-stats { background: var(--bg); }
+
+.stats-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 24px 0 12px;
+}
+
+.stats-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.stat-card-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.stat-card-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.stat-card-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* Note breakdown table */
+.note-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.note-table th {
+  text-align: left;
+  padding: 8px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.note-table td {
+  padding: 10px 6px;
+  border-bottom: 1px solid rgba(46,46,62,0.5);
+  font-family: var(--font-display);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.note-table td:first-child {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 14px;
+}
+.note-table tr:last-child td { border-bottom: none; }
+
+.hit-rate-bar {
+  display: inline-block;
+  width: 40px;
+  height: 4px;
+  background: var(--surface);
+  border-radius: 2px;
+  position: relative;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.hit-rate-bar::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: var(--accent-green);
+  border-radius: 2px;
+  width: var(--pct, 0%);
+}
+
+.reset-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-red);
+  background: transparent;
+  color: var(--accent-red);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 28px;
+}
+
+/* =========================================================
+   SETTINGS SCREEN
+   ========================================================= */
+#screen-settings { background: var(--bg); }
+
+.settings-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 28px 0 14px;
+}
+.settings-section-title:first-of-type { margin-top: 8px; }
+
+.setting-row {
+  margin-bottom: 22px;
+}
+.setting-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.setting-name {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.setting-value {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-amber);
+}
+
+/* Styled range sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(232,160,32,0.4);
+  border: none;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  cursor: pointer;
+  border: none;
+}
+
+/* Segmented control (difficulty) */
+.seg-control {
+  display: flex;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.seg-btn {
+  flex: 1;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.seg-btn.active {
+  background: var(--accent-amber);
+  color: #0d0d0f;
+}
+
+/* Toggle */
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  margin-bottom: 16px;
+}
+.toggle-label { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+
+.toggle {
+  position: relative;
+  width: 50px;
+  height: 28px;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid var(--border);
+}
+.toggle input:checked + .toggle-track { background: var(--accent-amber); border-color: var(--accent-amber); }
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  top: 2px; left: 2px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.toggle input:checked + .toggle-track::after { transform: translateX(22px); }
+
+/* Tuner button (tools section) */
+.tools-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.tuner-open-btn {
+  width: 100%;
+  height: 54px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s;
+}
+.tuner-open-btn:active { background: var(--surface); }
+
+/* =========================================================
+   TUNER SCREEN
+   ========================================================= */
+#screen-tuner {
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+}
+#screen-tuner.active { display: flex; }
+
+.tuner-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.tuner-back-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tuner-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tuner-body {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 20px;
+}
+
+/* Detected note display */
+.tuner-note-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.tuner-note-name {
+  font-family: var(--font-display);
+  font-size: clamp(72px, 22vw, 110px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+  transition: color 0.2s;
+}
+.tuner-note-name.in-tune { color: var(--accent-green); }
+.tuner-note-name.out-tune { color: var(--accent-red); }
+.tuner-note-name.no-signal { color: var(--text-muted); opacity: 0.4; }
+
+.tuner-cents {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  min-height: 22px;
+}
+
+/* SVG Needle dial */
+#tuner-dial {
+  width: min(320px, 90vw);
+  height: 180px;
+  display: block;
+}
+
+.tuner-status {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  min-height: 18px;
+  transition: color 0.2s;
+}
+.tuner-status.in-tune { color: var(--accent-green); }
+
+/* =========================================================
+   UTILITY & SHARED
+   ========================================================= */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Mic permission prompt */
+.mic-prompt {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,13,15,0.92);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px;
+  backdrop-filter: blur(12px);
+  text-align: center;
+}
+.mic-prompt.active { display: flex; }
+.mic-prompt-icon { font-size: 48px; }
+.mic-prompt-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+.mic-prompt-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.mic-prompt-btn {
+  width: 200px;
+  height: 54px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-amber);
+  background: transparent;
+  color: var(--accent-amber);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- Beat flash overlay — whole-screen pulse on each beat -->
+<div id="beat-flash"></div>
+
+<!-- Mic permission prompt -->
+<div class="mic-prompt" id="mic-prompt">
+  <div class="mic-prompt-icon">🎙️</div>
+  <div class="mic-prompt-title">Microphone Access</div>
+  <div class="mic-prompt-sub">This app listens to your guitar to check the notes you play. Your audio is processed locally and never sent anywhere.</div>
+  <button class="mic-prompt-btn" id="mic-prompt-btn">Allow Mic</button>
+</div>
+
+<!-- Pause overlay -->
+<div class="pause-overlay" id="pause-overlay">
+  <div class="pause-title">Paused</div>
+  <button class="pause-btn-lg primary" id="resume-btn">Resume</button>
+  <button class="pause-btn-lg" id="end-session-btn">End Session</button>
+</div>
+
+<!-- Count-in overlay -->
+<div class="countin-overlay" id="countin-overlay">
+  <div class="countin-num" id="countin-num"></div>
+</div>
+
+<!-- =====================================================
+     PRACTICE SCREEN
+     ===================================================== -->
+<div class="screen active" id="screen-practice">
+
+  <!-- State A: Not yet started -->
+  <div class="start-screen" id="start-view">
+    <div class="start-logo">Fretboard Trainer</div>
+    <div class="start-note">A</div>
+    <button class="start-btn" id="start-session-btn">Begin Session</button>
+  </div>
+
+  <!-- State B: Active session -->
+  <div id="active-view" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+
+    <!-- BPM + progression arrow -->
+    <div class="practice-top">
+      <div class="bpm-display">
+        <div class="bpm-value" id="bpm-display">60</div>
+        <div class="bpm-label">BPM</div>
+        <svg class="bpm-arrow" id="bpm-arrow" viewBox="0 0 14 14" fill="none">
+          <path d="M7 12V2M3 6l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Note name + vertical progress bar -->
+    <div class="note-zone">
+      <div class="note-name-wrap">
+        <div class="note-name dim" id="note-name">–</div>
+      </div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-fill" id="prog-bar-fill"></div>
+      </div>
+    </div>
+
+    <!-- String indicators -->
+    <div class="strings-row" id="strings-row">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Stave -->
+    <div class="stave-wrap">
+      <svg id="stave-svg" viewBox="0 0 300 52" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <!-- Pause button -->
+    <button class="pause-btn" id="pause-btn">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="2" y="2" width="3.5" height="10" rx="1" fill="currentColor"/>
+        <rect x="8.5" y="2" width="3.5" height="10" rx="1" fill="currentColor"/>
+      </svg>
+      Pause
+    </button>
+  </div>
+
+</div>
+
+<!-- =====================================================
+     SESSION SUMMARY SCREEN
+     ===================================================== -->
+<div class="screen" id="screen-summary">
+  <div class="summary-scroll">
+    <div class="summary-header">Session Summary</div>
+    <div id="summary-content"></div>
+    <div class="summary-actions">
+      <button id="summary-discard-btn">Discard</button>
+      <button class="primary" id="summary-save-btn">Save to Stats</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     STATS SCREEN
+     ===================================================== -->
+<div class="screen" id="screen-stats">
+  <div class="scroll-area">
+    <div class="stats-section-title">Overview</div>
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-card-label">Hit Rate</div>
+        <div class="stat-card-value" id="stats-hit-rate">–<span class="stat-card-unit">%</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Beat Accuracy</div>
+        <div class="stat-card-value" id="stats-beat-acc">–<span class="stat-card-unit">ms</span></div>
+      </div>
+    </div>
+    <div class="stats-section-title">Per-Note Breakdown</div>
+    <table class="note-table" id="note-table">
+      <thead>
+        <tr>
+          <th>Note</th>
+          <th>Att</th>
+          <th>Hit</th>
+          <th>Wrong</th>
+          <th>Miss</th>
+          <th>Rate</th>
+        </tr>
+      </thead>
+      <tbody id="note-table-body"></tbody>
+    </table>
+    <div class="stats-section-title">Beat Accuracy by Note</div>
+    <table class="note-table" id="beat-table">
+      <thead>
+        <tr>
+          <th>Note</th>
+          <th>Avg Offset</th>
+          <th>Samples</th>
+        </tr>
+      </thead>
+      <tbody id="beat-table-body"></tbody>
+    </table>
+    <button class="reset-btn" id="reset-stats-btn">Reset All Stats</button>
+  </div>
+</div>
+
+<!-- =====================================================
+     SETTINGS SCREEN
+     ===================================================== -->
+<div class="screen" id="screen-settings">
+  <div class="scroll-area">
+    <div class="settings-section-title">Tempo</div>
+
+    <div class="setting-row">
+      <div class="setting-label">
+        <span class="setting-name">BPM</span>
+        <span class="setting-value" id="val-bpm">60</span>
+      </div>
+      <input type="range" id="set-bpm" min="40" max="120" value="60" step="1">
+    </div>
+
+    <div class="settings-section-title">Detection</div>
+
+    <div class="setting-row">
+      <div class="setting-label">
+        <span class="setting-name">Beat Tolerance Window</span>
+        <span class="setting-value" id="val-tolerance">250<small style="font-size:10px;color:var(--text-muted)">ms</small></span>
+      </div>
+      <input type="range" id="set-tolerance" min="50" max="500" value="250" step="10">
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-label">
+        <span class="setting-name">Noise Gate</span>
+        <span class="setting-value" id="val-noise">Mid</span>
+      </div>
+      <input type="range" id="set-noise" min="1" max="10" value="5" step="1">
+    </div>
+
+    <div class="settings-section-title">Difficulty</div>
+
+    <div class="seg-control" id="difficulty-control">
+      <button class="seg-btn active" data-val="easy">Easy</button>
+      <button class="seg-btn" data-val="medium">Medium</button>
+      <button class="seg-btn" data-val="hard">Hard</button>
+    </div>
+
+    <div class="settings-section-title">Auto Progression</div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Enable Auto Tempo Progression</span>
+      <label class="toggle">
+        <input type="checkbox" id="set-autoprog" checked>
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+
+    <div class="setting-row" id="prog-settings">
+      <div class="setting-label">
+        <span class="setting-name">Clean Cycles Required</span>
+        <span class="setting-value" id="val-cycles">8</span>
+      </div>
+      <input type="range" id="set-cycles" min="4" max="16" value="8" step="1">
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-label">
+        <span class="setting-name">BPM Step Size</span>
+        <span class="setting-value" id="val-step">5</span>
+      </div>
+      <input type="range" id="set-step" min="2" max="10" value="5" step="1">
+    </div>
+
+    <!-- Tools section -->
+    <div class="tools-section">
+      <div class="settings-section-title" style="margin-top:0">Tools</div>
+      <button class="tuner-open-btn" id="open-tuner-btn">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="9" y1="2" x2="9" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="9" y1="13" x2="9" y2="16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2" y1="9" x2="5" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="13" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="9" cy="9" r="2" fill="currentColor"/>
+        </svg>
+        Open Tuner
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     TUNER SCREEN (full-screen, outside nav)
+     ===================================================== -->
+<div class="screen" id="screen-tuner">
+  <div class="tuner-header">
+    <button class="tuner-back-btn" id="tuner-back-btn">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M9 12L4 7l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="tuner-title">Chromatic Tuner</div>
+  </div>
+
+  <div class="tuner-body">
+    <div class="tuner-note-display">
+      <div class="tuner-note-name no-signal" id="tuner-note">–</div>
+      <div class="tuner-cents" id="tuner-cents"></div>
+    </div>
+
+    <!-- SVG needle dial -->
+    <svg id="tuner-dial" viewBox="0 0 320 180">
+      <!-- Arc background -->
+      <defs>
+        <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#e84040;stop-opacity:0.6"/>
+          <stop offset="40%" style="stop-color:#e87020;stop-opacity:0.4"/>
+          <stop offset="50%" style="stop-color:#38c070;stop-opacity:0.6"/>
+          <stop offset="60%" style="stop-color:#e87020;stop-opacity:0.4"/>
+          <stop offset="100%" style="stop-color:#e84040;stop-opacity:0.6"/>
+        </linearGradient>
+      </defs>
+      <!-- Dial arc -->
+      <path d="M 30 150 A 130 130 0 0 1 290 150" fill="none" stroke="url(#dialGrad)" stroke-width="4" stroke-linecap="round"/>
+      <!-- Tick marks: flat, centre, sharp -->
+      <line x1="30" y1="150" x2="38" y2="132" stroke="#e84040" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      <line x1="160" y1="20" x2="160" y2="38" stroke="#38c070" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+      <line x1="290" y1="150" x2="282" y2="132" stroke="#e84040" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      <!-- Minor ticks -->
+      <line x1="85" y1="26" x2="90" y2="42" stroke="#4a4a5e" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="235" y1="26" x2="230" y2="42" stroke="#4a4a5e" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- Labels -->
+      <text x="20" y="168" fill="#e84040" font-size="11" font-family="Courier New, monospace" opacity="0.7">♭</text>
+      <text x="152" y="16" fill="#38c070" font-size="11" font-family="Courier New, monospace">✓</text>
+      <text x="295" y="168" fill="#e84040" font-size="11" font-family="Courier New, monospace" opacity="0.7">♯</text>
+      <!-- Needle — rotates around pivot (160, 150) -->
+      <g id="tuner-needle-g" transform="rotate(0, 160, 150)">
+        <line x1="160" y1="150" x2="160" y2="28" stroke="#f0eee8" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+        <circle cx="160" cy="150" r="6" fill="#f0eee8" opacity="0.9"/>
+        <circle cx="160" cy="150" r="3" fill="var(--bg)" opacity="0.9"/>
+      </g>
+      <!-- In-tune glow circle (shown when in tune) -->
+      <circle id="tuner-glow" cx="160" cy="150" r="14" fill="none" stroke="#38c070" stroke-width="2" opacity="0" />
+    </svg>
+
+    <div class="tuner-status" id="tuner-status">Listening...</div>
+  </div>
+</div>
+
+<!-- =====================================================
+     BOTTOM NAV
+     ===================================================== -->
+<nav class="nav" id="main-nav">
+  <button class="nav-btn active" data-screen="practice" id="nav-practice">
+    <svg viewBox="0 0 20 20" fill="none">
+      <rect x="3" y="6" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+      <rect x="3" y="9.25" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+      <rect x="3" y="12.5" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+      <circle cx="10" cy="10" r="3" fill="var(--bg)" stroke="currentColor" stroke-width="1.5"/>
+    </svg>
+    Practice
+  </button>
+  <button class="nav-btn" data-screen="stats" id="nav-stats">
+    <svg viewBox="0 0 20 20" fill="none">
+      <rect x="3" y="12" width="3" height="5" rx="1" fill="currentColor"/>
+      <rect x="8.5" y="8" width="3" height="9" rx="1" fill="currentColor"/>
+      <rect x="14" y="4" width="3" height="13" rx="1" fill="currentColor"/>
+    </svg>
+    Stats
+  </button>
+  <button class="nav-btn" data-screen="settings" id="nav-settings">
+    <svg viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.1 4.1l1.4 1.4M14.5 14.5l1.4 1.4M4.1 15.9l1.4-1.4M14.5 5.5l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    Settings
+  </button>
+</nav>
+
+<script>
+/* =========================================================
+   CONSTANTS & NOTE DATA
+   ========================================================= */
+
+/* All 12 canonical pitch classes (stored as sharp names internally) */
+const CANONICAL = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+/* Enharmonic display pairs: canonical sharp -> possible display names */
+const ENHARMONIC = {
+  'C#': ['C#','Db'], 'D#': ['D#','Eb'], 'F#': ['F#','Gb'],
+  'G#': ['G#','Ab'], 'A#': ['A#','Bb']
+};
+
+/* The 17-note training pool and natural/accidental classification */
+const NOTE_POOL = {
+  naturals: ['A','B','C','D','E','F','G'],
+  accidentals: ['A#','C#','D#','F#','G#','Bb','Eb','Ab','Db','Gb']
+};
+
+/* Canonical name for any display name (flats -> sharp) */
+const TO_CANONICAL = {
+  'C':'C','C#':'C#','Db':'C#','D':'D','D#':'D#','Eb':'D#',
+  'E':'E','F':'F','F#':'F#','Gb':'F#','G':'G','G#':'G#',
+  'Ab':'G#','A':'A','A#':'A#','Bb':'A#','B':'B'
+};
+
+/* Stave layout: treble clef line/space positions for each note
+   pos: 0 = bottom line (E4), 1 = first space (F4), etc.
+   using pos from 0 (E4 bottom) to 12 (F6). */
+const NOTE_STAVE_POS = {
+  'C': {oct:4, pos:-2}, 'C#': {oct:4, pos:-2}, 'Db': {oct:4, pos:-2},
+  'D': {oct:4, pos:-1}, 'D#': {oct:4, pos:-1}, 'Eb': {oct:4, pos:-1},
+  'E': {oct:4, pos:0},
+  'F': {oct:4, pos:1},  'F#': {oct:4, pos:1}, 'Gb': {oct:4, pos:1},
+  'G': {oct:4, pos:2},  'G#': {oct:4, pos:2}, 'Ab': {oct:4, pos:2},
+  'A': {oct:4, pos:3},  'A#': {oct:4, pos:3}, 'Bb': {oct:4, pos:3},
+  'B': {oct:4, pos:4},
+};
+/* Stave rendering: y for each staff position (lines at 0,2,4,6,8 = indices) */
+/* We'll compute dynamically in renderStave() */
+
+/* String names for display */
+const STRING_NAMES = ['E','A','D','G','B','e'];
+
+/* =========================================================
+   APP STATE
+   ========================================================= */
+const state = {
+  /* Settings */
+  bpm: 60,
+  tolerance: 250,   // ms
+  noiseGate: 5,     // 1-10 scale
+  difficulty: 'easy',
+  autoProg: true,
+  cyclesRequired: 8,
+  bpmStep: 5,
+
+  /* Session */
+  sessionActive: false,
+  paused: false,
+  currentBeat: 0,       // 1-indexed, 1-8
+  currentNote: null,    // display name
+  nextNote: null,       // pre-picked for beat 8
+  lastNote: null,       // to avoid repeat
+
+  /* Per-cycle accuracy tracking */
+  cycleResults: [],     // array of {hit, wrong, missed, offset} per beat (6 per cycle)
+  cleanStreak: 0,
+  sessionStartBpm: 60,
+
+  /* Per-session accumulators (not yet saved to localStorage) */
+  sessionData: {},      // canonical -> {attempts, correct, wrongNote, missed, beatOffsets}
+
+  /* Beat detection window */
+  detectionActive: false,
+  detectionBeat: 0,     // which string beat we're detecting for (1-6)
+  detectionOpenTime: 0, // AudioContext time when window opened
+
+  /* UI beat tracking */
+  beatStartTime: 0,
+};
+
+/* Settings keys in localStorage */
+const SETTINGS_KEY = 'ft_settings';
+const STATS_KEY = 'ft_stats';
+
+/* =========================================================
+   AUDIO ENGINE
+   ========================================================= */
+let audioCtx = null;
+let micStream = null;
+let analyserNode = null;
+let micBuffer = null; // Float32Array for autocorrelation
+
+/* Metronome scheduling state */
+let nextBeatTime = 0.0;
+let beatSchedulerTimer = null;
+const LOOKAHEAD_MS = 25.0;     // scheduler interval
+const SCHEDULE_AHEAD = 0.1;    // seconds to schedule ahead
+
+/* Initialise AudioContext on first user gesture */
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+/* Request mic, connect to AnalyserNode */
+async function startMic() {
+  if (!audioCtx) initAudio();
+  if (micStream) return true; // already running
+
+  /* Resume context first — Android Chrome suspends even after creation */
+  try { await audioCtx.resume(); } catch(e) {}
+
+  try {
+    /* Disable Android's aggressive audio processing which fights pitch detection */
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        latency: 0
+      },
+      video: false
+    });
+    const source = audioCtx.createMediaStreamSource(micStream);
+
+    analyserNode = audioCtx.createAnalyser();
+    analyserNode.fftSize = 4096;
+    analyserNode.smoothingTimeConstant = 0;
+
+    source.connect(analyserNode);
+    micBuffer = new Float32Array(analyserNode.fftSize);
+    return true;
+  } catch (e) {
+    console.error('Mic error:', e);
+    return false;
+  }
+}
+
+/* Stop mic stream */
+function stopMic() {
+  if (micStream) {
+    micStream.getTracks().forEach(t => t.stop());
+    micStream = null;
+    analyserNode = null;
+    micBuffer = null;
+  }
+}
+
+/* Synthesize a click sound at a given AudioContext time.
+   accent: true for beat-1 click (higher pitch), false for normal.
+   highPitch: optional override for auto-progression trigger click. */
+function scheduleClick(time, accent = false, highPitch = false) {
+  if (!audioCtx) return;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  /* Frequency: accent=1800Hz, normal=900Hz, highPitch=2400Hz */
+  osc.frequency.value = highPitch ? 2400 : (accent ? 1800 : 900);
+  osc.type = 'square';
+
+  gain.gain.setValueAtTime(0.4, time);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
+
+  osc.start(time);
+  osc.stop(time + 0.05);
+}
+
+/* =========================================================
+   METRONOME SCHEDULER (lookahead pattern)
+   ========================================================= */
+let scheduledBeats = []; // {beatNum, time} queued for JS-side handling
+
+function startMetronome() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  nextBeatTime = audioCtx.currentTime + 0.05;
+  scheduledBeats = [];
+  beatSchedulerTimer = setInterval(schedulerTick, LOOKAHEAD_MS);
+}
+
+function stopMetronome() {
+  clearInterval(beatSchedulerTimer);
+  beatSchedulerTimer = null;
+  scheduledBeats = [];
+}
+
+/* Runs frequently, schedules beats slightly ahead of now */
+function schedulerTick() {
+  if (!audioCtx || state.paused) return;
+
+  while (nextBeatTime < audioCtx.currentTime + SCHEDULE_AHEAD) {
+    const beatInCycle = ((state.currentBeat - 1) % 8) + 1; // 1-8
+    const isAccent = (beatInCycle === 1);
+
+    /* Check if this beat should use high-pitch click (auto-prog trigger) */
+    const isProgTrigger = state._nextBeatHighPitch || false;
+    state._nextBeatHighPitch = false;
+
+    scheduleClick(nextBeatTime, isAccent, isProgTrigger);
+
+    /* Queue this beat for JS-side processing.
+       During lead-in use sentinel -1 so handleBeat routes to handleLeadinBeat
+       regardless of the stale state.currentBeat value. */
+    scheduledBeats.push({ beatNum: inLeadin ? -1 : state.currentBeat, time: nextBeatTime });
+
+    /* Advance beat counter only outside lead-in.
+       During lead-in, handleLeadinBeat() manages its own counter
+       and resets state.currentBeat to 1 when it completes. */
+    if (!inLeadin) {
+      state.currentBeat = (state.currentBeat % 8) + 1;
+    }
+
+    const secPerBeat = 60.0 / state.bpm;
+    nextBeatTime += secPerBeat;
+  }
+
+  /* Process any beats whose scheduled time has passed */
+  const now = audioCtx.currentTime;
+  while (scheduledBeats.length && scheduledBeats[0].time <= now + 0.01) {
+    const { beatNum, time } = scheduledBeats.shift();
+    handleBeat(beatNum, time);
+  }
+}
+
+/* =========================================================
+   BEAT HANDLER
+   Called when a beat fires (via scheduler loop).
+   beatNum: 1-8 within the cycle.
+   ========================================================= */
+
+/* Session lead-in: 4 beats before cycle 1.
+   -3, -2 = metronome only; -1 = note appears; 0 = strings animate; then beat 1 */
+let leadinBeatsLeft = 0;
+let inLeadin = false;
+
+function handleBeat(beatNum, time) {
+  /* Flash the whole screen */
+  triggerBeatPulse();
+
+  /* beatNum -1 is the lead-in sentinel, always routes to lead-in handler */
+  if (inLeadin || beatNum === -1) {
+    handleLeadinBeat();
+    return;
+  }
+
+  /* ---- Normal cycle beat handling ---- */
+  const beat = beatNum; // 1-8
+
+  if (beat >= 1 && beat <= 6) {
+    /* Active string beat: close previous detection window if open, open new one */
+    if (state.detectionActive) finaliseDetection(true); // missed if still open
+
+    const stringIndex = beat - 1; // 0-5
+    openDetectionWindow(stringIndex, time);
+    setActiveString(stringIndex);
+
+  } else if (beat === 7) {
+    /* Rest beat: close detection if somehow open */
+    if (state.detectionActive) finaliseDetection(true);
+    clearActiveString();
+
+  } else if (beat === 8) {
+    /* Prep beat: pick next note, display it */
+    if (state.detectionActive) finaliseDetection(true);
+    clearActiveString();
+
+    /* Evaluate this cycle before moving to next */
+    evaluateCycle();
+
+    /* Display the pre-picked next note */
+    if (state.nextNote) {
+      state.currentNote = state.nextNote;
+      state.nextNote = null;
+    } else {
+      state.currentNote = pickNote();
+    }
+    displayNote(state.currentNote);
+
+    /* Pre-pick note for the cycle after next */
+    state.nextNote = pickNote();
+    updateStave(state.currentNote);
+    resetStringIndicators();
+  }
+}
+
+/* =========================================================
+   SESSION LEAD-IN
+   ========================================================= */
+function startLeadin() {
+  inLeadin = true;
+  leadinBeatsLeft = 4; // beats: 1(metr only), 2(metr only), 3(note appears), 4(strings animate)
+  state.currentNote = null;
+  setNoteNameDim(true);
+}
+
+function handleLeadinBeat() {
+  leadinBeatsLeft--;
+  switch (leadinBeatsLeft) {
+    case 3: /* beat 1 of leadin: metronome only */ break;
+    case 2: /* beat 2: metronome only */ break;
+    case 1: /* beat 3: show target note */ {
+      state.currentNote = pickNote();
+      state.nextNote = pickNote();
+      displayNote(state.currentNote);
+      updateStave(state.currentNote);
+      showCountin('3');
+      break;
+    }
+    case 0: /* beat 4: strings animate in */ {
+      resetStringIndicators();
+      setStringsPending();
+      showCountin('4');
+      break;
+    }
+  }
+
+  /* Lead-in complete: next beat from scheduler must be cycle beat 1 */
+  if (leadinBeatsLeft <= 0) {
+    inLeadin = false;
+    state.currentBeat = 1; // reset so cycle starts cleanly at E string
+  }
+}
+
+/* =========================================================
+   PITCH DETECTION (Autocorrelation)
+   ========================================================= */
+
+/* Noise gate threshold mapping: scale 1-10 -> RMS threshold */
+function getNoiseGateThreshold() {
+  const scale = state.noiseGate; // 1-10
+  // Map 1->0.005 (very open), 10->0.08 (tight)
+  return 0.005 + (scale - 1) * (0.075 / 9);
+}
+
+/* Compute RMS amplitude of buffer */
+function computeRms(buf) {
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+  return Math.sqrt(sum / buf.length);
+}
+
+/* Autocorrelation pitch detection.
+   Returns frequency in Hz, or -1 if not confident. */
+function detectPitch(buf, sampleRate) {
+  const SIZE = buf.length;
+  const rms = computeRms(buf);
+
+  /* Noise gate */
+  if (rms < getNoiseGateThreshold()) return -1;
+
+  /* Autocorrelation */
+  const corr = new Float32Array(SIZE);
+  for (let lag = 0; lag < SIZE; lag++) {
+    let sum = 0;
+    for (let i = 0; i < SIZE - lag; i++) sum += buf[i] * buf[i + lag];
+    corr[lag] = sum;
+  }
+
+  /* Find first significant drop then rise (fundamental period) */
+  let d = 0;
+  while (d < SIZE && corr[d] > corr[d + 1]) d++;
+
+  /* Find peak after the initial drop */
+  let maxVal = -1, maxPos = -1;
+  for (let i = d; i < SIZE; i++) {
+    if (corr[i] > maxVal) { maxVal = corr[i]; maxPos = i; }
+  }
+
+  /* Confidence check: peak must be >= 0.5 * corr[0] */
+  if (maxVal < 0.5 * corr[0]) return -1;
+
+  /* Parabolic interpolation for sub-sample accuracy */
+  const x1 = corr[maxPos - 1] || 0;
+  const x2 = corr[maxPos];
+  const x3 = corr[maxPos + 1] || 0;
+  const shift = (x3 - x1) / (2 * (2 * x2 - x1 - x3));
+  const period = maxPos + shift;
+
+  return sampleRate / period;
+}
+
+/* Convert Hz to note name (octave-agnostic) */
+function freqToNoteName(freq) {
+  if (freq <= 0) return null;
+  const noteNum = 12 * (Math.log2(freq / 440)) + 69;
+  const noteIndex = Math.round(noteNum) % 12;
+  return CANONICAL[(noteIndex + 12) % 12];
+}
+
+/* Convert Hz to cents offset from nearest note */
+function freqToCents(freq) {
+  if (freq <= 0) return 0;
+  const noteNum = 12 * (Math.log2(freq / 440)) + 69;
+  const nearest = Math.round(noteNum);
+  return (noteNum - nearest) * 100;
+}
+
+/* =========================================================
+   DETECTION WINDOW MANAGEMENT
+   ========================================================= */
+let detectionRaf = null;
+
+function openDetectionWindow(stringIndex, beatTime) {
+  state.detectionActive = true;
+  state.detectionBeat = stringIndex;
+  state.detectionOpenTime = beatTime;
+  state.detectionResult = null;
+
+  /* Poll for pitch until tolerance window closes */
+  const windowMs = state.tolerance;
+  const startMs = performance.now();
+
+  function poll() {
+    if (!state.detectionActive) return;
+    if (!analyserNode || !micBuffer) {
+      /* No mic: skip detection, mark missed */
+      if (performance.now() - startMs > windowMs) {
+        finaliseDetection(false);
+      } else {
+        detectionRaf = requestAnimationFrame(poll);
+      }
+      return;
+    }
+
+    analyserNode.getFloatTimeDomainData(micBuffer);
+    const freq = detectPitch(micBuffer, audioCtx.sampleRate);
+    const elapsed = performance.now() - startMs;
+
+    if (freq > 0 && !state.detectionResult) {
+      /* Got a reading */
+      const detected = freqToNoteName(freq);
+      const target = TO_CANONICAL[state.currentNote];
+
+      /* Compute beat offset in ms */
+      const beatOffset = Math.abs((audioCtx.currentTime - state.detectionOpenTime) * 1000);
+
+      if (detected === target) {
+        state.detectionResult = { type: 'hit', offset: beatOffset };
+        finaliseDetection(false);
+        return;
+      } else {
+        state.detectionResult = { type: 'wrong', offset: beatOffset };
+        finaliseDetection(false);
+        return;
+      }
+    }
+
+    /* Window expired without clean detection */
+    if (elapsed > windowMs) {
+      finaliseDetection(false);
+      return;
+    }
+
+    detectionRaf = requestAnimationFrame(poll);
+  }
+
+  detectionRaf = requestAnimationFrame(poll);
+}
+
+function finaliseDetection(timedOut) {
+  if (!state.detectionActive) return;
+  state.detectionActive = false;
+  cancelAnimationFrame(detectionRaf);
+
+  const stringIndex = state.detectionBeat;
+  let result;
+
+  if (timedOut || !state.detectionResult) {
+    result = { type: 'missed', offset: null };
+  } else {
+    result = state.detectionResult;
+  }
+
+  /* Update string indicator UI */
+  updateStringIndicator(stringIndex, result.type);
+
+  /* Record result */
+  state.cycleResults.push({
+    stringIndex,
+    type: result.type,
+    offset: result.offset
+  });
+
+  /* Update session data */
+  const canonical = TO_CANONICAL[state.currentNote] || state.currentNote;
+  if (!state.sessionData[canonical]) {
+    state.sessionData[canonical] = { attempts: 0, correct: 0, wrongNote: 0, missed: 0, beatOffsets: [] };
+  }
+  const sd = state.sessionData[canonical];
+  sd.attempts++;
+  if (result.type === 'hit') {
+    sd.correct++;
+    if (result.offset !== null) sd.beatOffsets.push(result.offset);
+  } else if (result.type === 'wrong') {
+    sd.wrongNote++;
+  } else {
+    sd.missed++;
+  }
+}
+
+/* =========================================================
+   CYCLE EVALUATION & AUTO PROGRESSION
+   ========================================================= */
+function evaluateCycle() {
+  const results = state.cycleResults;
+  if (!results.length) return;
+
+  /* Clean cycle: all 6 beats hit, all offsets within tolerance */
+  const isClean = results.every(r => r.type === 'hit') &&
+    results.every(r => r.offset === null || r.offset <= state.tolerance);
+
+  if (isClean) {
+    state.cleanStreak++;
+  } else {
+    state.cleanStreak = 0;
+  }
+
+  /* Update progression bar */
+  if (state.autoProg) {
+    const pct = Math.min(100, (state.cleanStreak / state.cyclesRequired) * 100);
+    updateProgBar(pct, isClean);
+  }
+
+  /* Check auto-progression trigger */
+  if (state.autoProg && state.cleanStreak >= state.cyclesRequired) {
+    triggerBpmIncrease();
+    state.cleanStreak = 0;
+  }
+
+  /* Reset for next cycle */
+  state.cycleResults = [];
+}
+
+function triggerBpmIncrease() {
+  const newBpm = Math.min(120, state.bpm + state.bpmStep);
+  if (newBpm === state.bpm) return; // already at max
+
+  state.bpm = newBpm;
+  state._nextBeatHighPitch = true; // flag for scheduler
+
+  /* Animate BPM display */
+  animateBpmBump(newBpm);
+  flashProgBar();
+  updateProgBar(0, false);
+}
+
+/* =========================================================
+   NOTE SELECTION
+   ========================================================= */
+function pickNote() {
+  const pools = NOTE_POOL;
+  let pool;
+
+  const r = Math.random();
+  if (state.difficulty === 'easy')        pool = r < 0.8 ? pools.naturals : pools.accidentals;
+  else if (state.difficulty === 'medium') pool = r < 0.5 ? pools.naturals : pools.accidentals;
+  else                                    pool = r < 0.2 ? pools.naturals : pools.accidentals;
+
+  /* Avoid repeat of last note (by canonical) */
+  let attempts = 0;
+  let chosen;
+  do {
+    chosen = pool[Math.floor(Math.random() * pool.length)];
+    attempts++;
+  } while (attempts < 10 && TO_CANONICAL[chosen] === TO_CANONICAL[state.lastNote]);
+
+  state.lastNote = chosen;
+
+  /* For accidentals, randomly choose enharmonic display name */
+  const canonical = TO_CANONICAL[chosen];
+  if (ENHARMONIC[canonical]) {
+    const pair = ENHARMONIC[canonical];
+    chosen = pair[Math.floor(Math.random() * pair.length)];
+  }
+
+  return chosen;
+}
+
+/* =========================================================
+   STAVE RENDERING
+   The stave is a compact SVG: 5 lines, treble-implied position.
+   We place a crotchet (quarter note) at the right vertical position.
+   Lines y: 8, 18, 28, 38, 48 (spacing 10px)
+   Positions from bottom line (E4=0) upward, each step = 5px
+   ========================================================= */
+function renderStave(noteName) {
+  const svg = document.getElementById('stave-svg');
+  const W = 300, H = 52;
+
+  /* Staff lines spaced 10px, bottom at y=44, top at y=4 */
+  const lineY = [44, 34, 24, 14, 4]; // lines 0 (bottom, E4) to 4 (top, F5)
+  const STEP = 5; // half-step vertically per stave position
+
+  /* Stave position for this note (0 = bottom line E4, 1=F4 space, etc.) */
+  const info = NOTE_STAVE_POS[noteName] || NOTE_STAVE_POS['C'];
+  const pos = info.pos; // relative to bottom line
+
+  /* Y position of note head (pos=0 -> lineY[0] = 44) */
+  const noteY = lineY[0] - pos * STEP;
+
+  /* Determine if accidental needed */
+  const isSharp = noteName.includes('#');
+  const isFlat = noteName.includes('b') && noteName.length > 1;
+
+  /* Build SVG content */
+  let html = '';
+
+  /* Ledger lines below staff (pos < 0) */
+  if (pos <= -2) {
+    const ly = lineY[0] + Math.abs(pos % 2 === 0 ? 0 : STEP);
+    for (let lp = -2; lp >= pos; lp -= 2) {
+      const ly2 = lineY[0] + Math.abs(lp) * STEP;
+      html += `<line x1="128" y1="${ly2}" x2="172" y2="${ly2}" stroke="#4a4a5e" stroke-width="1.5"/>`;
+    }
+  }
+
+  /* Staff lines */
+  for (let i = 0; i < 5; i++) {
+    html += `<line x1="40" y1="${lineY[i]}" x2="260" y2="${lineY[i]}" stroke="#2e2e3e" stroke-width="1.5"/>`;
+  }
+
+  /* Ledger lines above staff (pos > 8: lines are at positions 0,2,4,6,8) */
+  if (pos >= 10) {
+    for (let lp = 10; lp <= pos; lp += 2) {
+      const ly2 = lineY[4] - (lp - 8) * STEP;
+      html += `<line x1="128" y1="${ly2}" x2="172" y2="${ly2}" stroke="#4a4a5e" stroke-width="1.5"/>`;
+    }
+  }
+
+  /* Accidental symbol */
+  if (isSharp) {
+    html += `<text x="122" y="${noteY + 5}" font-size="15" fill="#e8a020" font-family="Georgia, serif" text-anchor="end">♯</text>`;
+  } else if (isFlat) {
+    html += `<text x="122" y="${noteY + 4}" font-size="15" fill="#e8a020" font-family="Georgia, serif" text-anchor="end">♭</text>`;
+  }
+
+  /* Note head (filled ellipse) */
+  html += `<ellipse cx="150" cy="${noteY}" rx="9" ry="7" fill="#f0eee8" transform="rotate(-12, 150, ${noteY})"/>`;
+
+  /* Note stem (up if pos < 4, down if pos >= 4) */
+  if (pos < 4) {
+    html += `<line x1="158.5" y1="${noteY}" x2="158.5" y2="${noteY - 32}" stroke="#f0eee8" stroke-width="1.8"/>`;
+  } else {
+    html += `<line x1="141.5" y1="${noteY}" x2="141.5" y2="${noteY + 32}" stroke="#f0eee8" stroke-width="1.8"/>`;
+  }
+
+  svg.innerHTML = html;
+}
+
+/* =========================================================
+   UI HELPERS
+   ========================================================= */
+
+/* Whole-screen beat pulse — remove/re-add class to retrigger keyframe */
+function triggerBeatPulse() {
+  const el = document.getElementById('beat-flash');
+  el.classList.remove('pulse');
+  void el.offsetWidth; // force reflow so animation restarts
+  el.classList.add('pulse');
+}
+
+/* Display note name in centre */
+function displayNote(name) {
+  const el = document.getElementById('note-name');
+  el.textContent = name || '–';
+  el.classList.remove('dim', 'flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+}
+
+function setNoteNameDim(dim) {
+  const el = document.getElementById('note-name');
+  if (dim) { el.classList.add('dim'); el.textContent = '–'; }
+  else el.classList.remove('dim');
+}
+
+/* Update stave SVG */
+function updateStave(noteName) {
+  if (noteName) renderStave(noteName);
+}
+
+/* String indicator management */
+function buildStringIndicators() {
+  const row = document.getElementById('strings-row');
+  row.innerHTML = '';
+  STRING_NAMES.forEach((name, i) => {
+    row.innerHTML += `
+      <div class="string-ind">
+        <div class="string-dot pending" id="str-dot-${i}"></div>
+        <div class="string-label">${name}</div>
+      </div>`;
+  });
+}
+
+function resetStringIndicators() {
+  for (let i = 0; i < 6; i++) {
+    const dot = document.getElementById(`str-dot-${i}`);
+    if (dot) dot.className = 'string-dot pending';
+  }
+}
+
+function setStringsPending() {
+  resetStringIndicators();
+}
+
+function setActiveString(index) {
+  /* Clear active from all, set active on this one */
+  for (let i = 0; i < 6; i++) {
+    const dot = document.getElementById(`str-dot-${i}`);
+    if (!dot) continue;
+    if (dot.classList.contains('active')) {
+      dot.classList.remove('active');
+      // Leave state as pending if not already set
+    }
+  }
+  const dot = document.getElementById(`str-dot-${index}`);
+  if (dot && dot.classList.contains('pending')) {
+    dot.className = 'string-dot active';
+  }
+}
+
+function clearActiveString() {
+  for (let i = 0; i < 6; i++) {
+    const dot = document.getElementById(`str-dot-${i}`);
+    if (dot && dot.classList.contains('active')) {
+      dot.classList.remove('active');
+    }
+  }
+}
+
+function updateStringIndicator(index, type) {
+  const dot = document.getElementById(`str-dot-${index}`);
+  if (!dot) return;
+  dot.className = `string-dot ${type}`;
+}
+
+/* Progression bar */
+function updateProgBar(pct, isClean) {
+  const fill = document.getElementById('prog-bar-fill');
+  fill.style.height = pct + '%';
+  fill.className = 'prog-bar-fill' + (pct > 60 ? ' green' : '');
+}
+
+function flashProgBar() {
+  const fill = document.getElementById('prog-bar-fill');
+  fill.classList.add('flash-anim');
+  setTimeout(() => fill.classList.remove('flash-anim'), 700);
+}
+
+/* BPM display bump animation */
+function animateBpmBump(newBpm) {
+  const el = document.getElementById('bpm-display');
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.textContent = newBpm;
+  el.classList.add('bump');
+  setTimeout(() => el.classList.remove('bump'), 300);
+  document.getElementById('bpm-arrow').classList.add('visible');
+}
+
+/* Count-in number flash */
+function showCountin(num) {
+  const overlay = document.getElementById('countin-overlay');
+  const numEl = document.getElementById('countin-num');
+  numEl.textContent = num;
+  overlay.classList.add('active');
+  numEl.style.animation = 'none';
+  void numEl.offsetWidth;
+  numEl.style.animation = 'countin-pop 0.5s ease-out forwards';
+  setTimeout(() => overlay.classList.remove('active'), 500);
+}
+
+/* =========================================================
+   SCREEN NAVIGATION
+   ========================================================= */
+function showScreen(name) {
+  /* Hide all screens */
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  /* Show target */
+  const target = document.getElementById('screen-' + name);
+  if (target) target.classList.add('active');
+
+  /* Nav bar: hide for tuner and summary, highlight correct tab */
+  const nav = document.getElementById('main-nav');
+  if (name === 'tuner' || name === 'summary') {
+    nav.style.display = 'none';
+  } else {
+    nav.style.display = 'flex';
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.screen === name);
+    });
+  }
+
+  /* Screen-specific entry actions */
+  if (name === 'tuner') startTuner();
+  if (name === 'stats') renderStats();
+  if (name !== 'tuner') stopTuner();
+}
+
+/* =========================================================
+   SESSION MANAGEMENT
+   ========================================================= */
+function startSession() {
+  initAudio();
+  state.sessionActive = true;
+  state.paused = false;
+  state.currentBeat = 1;
+  state.cycleResults = [];
+  state.cleanStreak = 0;
+  state.sessionStartBpm = state.bpm;
+  state.sessionData = {};
+  state.lastNote = null;
+  state._nextBeatHighPitch = false;
+
+  /* Reset UI */
+  buildStringIndicators();
+  updateProgBar(0, false);
+  document.getElementById('bpm-display').textContent = state.bpm;
+  document.getElementById('bpm-arrow').classList.toggle('visible', state.autoProg);
+
+  /* Switch view */
+  document.getElementById('start-view').style.display = 'none';
+  document.getElementById('active-view').style.display = 'flex';
+
+  /* Request mic */
+  const prompt = document.getElementById('mic-prompt');
+  if (!micStream) {
+    prompt.classList.add('active');
+    /* Mic prompt button triggers startMic then begins */
+    document.getElementById('mic-prompt-btn').onclick = async () => {
+      prompt.classList.remove('active');
+      await startMic();
+      beginMetronome();
+    };
+  } else {
+    beginMetronome();
+  }
+}
+
+function beginMetronome() {
+  startLeadin();
+  startMetronome();
+}
+
+function pauseSession() {
+  state.paused = true;
+  stopMetronome();
+  document.getElementById('pause-overlay').classList.add('active');
+  document.getElementById('screen-practice').style.filter = 'brightness(0.4)';
+}
+
+function resumeSession() {
+  document.getElementById('pause-overlay').classList.remove('active');
+  document.getElementById('screen-practice').style.filter = '';
+
+  /* 2-beat count-in before resume */
+  state.paused = false;
+  let resumeCountin = 2;
+  const secPerBeat = 60.0 / state.bpm;
+
+  if (!audioCtx) initAudio();
+  const startTime = audioCtx.currentTime + 0.05;
+  scheduleClick(startTime, false);
+  scheduleClick(startTime + secPerBeat, false);
+  showCountin('1');
+  setTimeout(() => showCountin('2'), secPerBeat * 1000);
+
+  setTimeout(() => {
+    nextBeatTime = audioCtx.currentTime + 0.05;
+    beatSchedulerTimer = setInterval(schedulerTick, LOOKAHEAD_MS);
+  }, (secPerBeat * 2) * 1000 + 50);
+}
+
+function endSession() {
+  stopMetronome();
+  if (state.detectionActive) finaliseDetection(true);
+  state.sessionActive = false;
+  state.paused = false;
+  document.getElementById('pause-overlay').classList.remove('active');
+  document.getElementById('screen-practice').style.filter = '';
+  showSummary();
+}
+
+/* =========================================================
+   SESSION SUMMARY
+   ========================================================= */
+function showSummary() {
+  showScreen('summary');
+
+  const sd = state.sessionData;
+  const notes = Object.keys(sd);
+
+  let totalAttempts = 0, totalCorrect = 0, allOffsets = [];
+  notes.forEach(n => {
+    totalAttempts += sd[n].attempts;
+    totalCorrect += sd[n].correct;
+    allOffsets = allOffsets.concat(sd[n].beatOffsets);
+  });
+
+  const hitRate = totalAttempts ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+  const avgOffset = allOffsets.length ? Math.round(allOffsets.reduce((a,b)=>a+b,0)/allOffsets.length) : null;
+
+  /* Weakest/strongest note */
+  let weakNote = '–', strongNote = '–', weakRate = 1, strongRate = 0;
+  notes.forEach(n => {
+    const r = sd[n].attempts ? sd[n].correct / sd[n].attempts : 0;
+    if (r < weakRate) { weakRate = r; weakNote = n; }
+    if (r > strongRate) { strongRate = r; strongNote = n; }
+  });
+
+  const cyclesCompleted = Math.floor(totalAttempts / 6);
+
+  const html = `
+    <div class="summary-stat"><span class="summary-stat-label">Cycles Completed</span><span class="summary-stat-value">${cyclesCompleted}</span></div>
+    <div class="summary-stat"><span class="summary-stat-label">Note Accuracy</span><span class="summary-stat-value">${hitRate}%</span></div>
+    <div class="summary-stat"><span class="summary-stat-label">Beat Accuracy</span><span class="summary-stat-value">${avgOffset !== null ? avgOffset + 'ms' : '–'}</span></div>
+    <div class="summary-stat"><span class="summary-stat-label">Strongest Note</span><span class="summary-stat-value">${strongNote}</span></div>
+    <div class="summary-stat"><span class="summary-stat-label">Weakest Note</span><span class="summary-stat-value">${weakNote}</span></div>
+    <div class="summary-stat"><span class="summary-stat-label">BPM Journey</span><span class="summary-stat-value" style="font-size:15px">${state.sessionStartBpm} → ${state.bpm}</span></div>
+  `;
+
+  document.getElementById('summary-content').innerHTML = html;
+
+  /* Wire up buttons */
+  document.getElementById('summary-save-btn').onclick = () => {
+    saveSessionToStats();
+    returnToPractice();
+  };
+  document.getElementById('summary-discard-btn').onclick = returnToPractice;
+}
+
+function saveSessionToStats() {
+  const stored = loadStats();
+  const sd = state.sessionData;
+  Object.keys(sd).forEach(canonical => {
+    if (!stored[canonical]) {
+      stored[canonical] = { attempts: 0, correct: 0, wrongNote: 0, missed: 0, beatOffsets: [] };
+    }
+    stored[canonical].attempts += sd[canonical].attempts;
+    stored[canonical].correct += sd[canonical].correct;
+    stored[canonical].wrongNote += sd[canonical].wrongNote;
+    stored[canonical].missed += sd[canonical].missed;
+    stored[canonical].beatOffsets = stored[canonical].beatOffsets.concat(sd[canonical].beatOffsets).slice(-500);
+  });
+  saveStats(stored);
+}
+
+function returnToPractice() {
+  /* Reset practice screen to start state */
+  document.getElementById('active-view').style.display = 'none';
+  document.getElementById('start-view').style.display = 'flex';
+  setNoteNameDim(true);
+  resetStringIndicators();
+  state.sessionActive = false;
+  showScreen('practice');
+}
+
+/* =========================================================
+   STATS
+   ========================================================= */
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+function saveStats(data) {
+  localStorage.setItem(STATS_KEY, JSON.stringify(data));
+}
+
+function renderStats() {
+  const stats = loadStats();
+  const notes = Object.keys(stats);
+
+  if (!notes.length) {
+    document.getElementById('stats-hit-rate').innerHTML = '–<span class="stat-card-unit">%</span>';
+    document.getElementById('stats-beat-acc').innerHTML = '–<span class="stat-card-unit">ms</span>';
+    document.getElementById('note-table-body').innerHTML = '<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:20px">No data yet</td></tr>';
+    document.getElementById('beat-table-body').innerHTML = '';
+    return;
+  }
+
+  /* Overview */
+  let totalAtt = 0, totalHit = 0, allOffsets = [];
+  notes.forEach(n => {
+    totalAtt += stats[n].attempts;
+    totalHit += stats[n].correct;
+    allOffsets = allOffsets.concat(stats[n].beatOffsets);
+  });
+  const hitRate = totalAtt ? Math.round((totalHit/totalAtt)*100) : 0;
+  const avgOff = allOffsets.length ? Math.round(allOffsets.reduce((a,b)=>a+b,0)/allOffsets.length) : null;
+
+  document.getElementById('stats-hit-rate').innerHTML = `${hitRate}<span class="stat-card-unit">%</span>`;
+  document.getElementById('stats-beat-acc').innerHTML = `${avgOff !== null ? avgOff : '–'}<span class="stat-card-unit">ms</span>`;
+
+  /* Per-note table */
+  const noteRows = notes.map(n => {
+    const d = stats[n];
+    const rate = d.attempts ? Math.round((d.correct/d.attempts)*100) : 0;
+    return `<tr>
+      <td>${n}</td>
+      <td>${d.attempts}</td>
+      <td>${d.correct}</td>
+      <td>${d.wrongNote}</td>
+      <td>${d.missed}</td>
+      <td><span class="hit-rate-bar" style="--pct:${rate}%"></span>${rate}%</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('note-table-body').innerHTML = noteRows || '<tr><td colspan="6" style="color:var(--text-muted)">No data</td></tr>';
+
+  /* Beat accuracy table */
+  const beatRows = notes.filter(n => stats[n].beatOffsets.length).map(n => {
+    const offs = stats[n].beatOffsets;
+    const avg = Math.round(offs.reduce((a,b)=>a+b,0)/offs.length);
+    return `<tr><td>${n}</td><td>${avg}ms</td><td>${offs.length}</td></tr>`;
+  }).join('');
+  document.getElementById('beat-table-body').innerHTML = beatRows || '<tr><td colspan="3" style="color:var(--text-muted)">No data</td></tr>';
+}
+
+/* =========================================================
+   SETTINGS PERSISTENCE
+   ========================================================= */
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if (!s) return;
+    if (s.bpm) state.bpm = s.bpm;
+    if (s.tolerance) state.tolerance = s.tolerance;
+    if (s.noiseGate) state.noiseGate = s.noiseGate;
+    if (s.difficulty) state.difficulty = s.difficulty;
+    if (s.autoProg !== undefined) state.autoProg = s.autoProg;
+    if (s.cyclesRequired) state.cyclesRequired = s.cyclesRequired;
+    if (s.bpmStep) state.bpmStep = s.bpmStep;
+  } catch(e) {}
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+    bpm: state.bpm,
+    tolerance: state.tolerance,
+    noiseGate: state.noiseGate,
+    difficulty: state.difficulty,
+    autoProg: state.autoProg,
+    cyclesRequired: state.cyclesRequired,
+    bpmStep: state.bpmStep
+  }));
+}
+
+function syncSettingsUI() {
+  document.getElementById('set-bpm').value = state.bpm;
+  document.getElementById('val-bpm').textContent = state.bpm;
+  document.getElementById('set-tolerance').value = state.tolerance;
+  document.getElementById('val-tolerance').innerHTML = state.tolerance + '<small style="font-size:10px;color:var(--text-muted)">ms</small>';
+  document.getElementById('set-noise').value = state.noiseGate;
+  const noiseLabels = ['','Very Low','Low','Low-Mid','Mid-Low','Mid','Mid-High','High-Mid','High','Very High','Max'];
+  document.getElementById('val-noise').textContent = noiseLabels[state.noiseGate] || state.noiseGate;
+  document.getElementById('set-autoprog').checked = state.autoProg;
+  document.getElementById('set-cycles').value = state.cyclesRequired;
+  document.getElementById('val-cycles').textContent = state.cyclesRequired;
+  document.getElementById('set-step').value = state.bpmStep;
+  document.getElementById('val-step').textContent = state.bpmStep;
+
+  /* Difficulty */
+  document.querySelectorAll('#difficulty-control .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === state.difficulty);
+  });
+}
+
+/* =========================================================
+   TUNER
+   ========================================================= */
+let tunerRaf = null;
+let tunerActive = false;
+
+async function startTuner() {
+  if (!audioCtx) initAudio();
+  tunerActive = true;
+  const ok = await startMic();
+  if (!ok) {
+    document.getElementById('tuner-status').textContent = 'Mic unavailable';
+    return;
+  }
+  document.getElementById('tuner-status').textContent = 'Listening...';
+  tunerLoop();
+}
+
+function stopTuner() {
+  tunerActive = false;
+  cancelAnimationFrame(tunerRaf);
+  /* Only stop mic if not in a session */
+  if (!state.sessionActive) stopMic();
+  /* Reset dial */
+  setNeedle(0);
+}
+
+function tunerLoop() {
+  if (!tunerActive || !analyserNode || !micBuffer) return;
+
+  analyserNode.getFloatTimeDomainData(micBuffer);
+  const freq = detectPitch(micBuffer, audioCtx.sampleRate);
+
+  const noteEl = document.getElementById('tuner-note');
+  const centsEl = document.getElementById('tuner-cents');
+  const statusEl = document.getElementById('tuner-status');
+
+  if (freq > 0) {
+    const noteName = freqToNoteName(freq);
+    const cents = freqToCents(freq);
+    const inTune = Math.abs(cents) < 10;
+
+    noteEl.textContent = noteName || '–';
+    noteEl.className = 'tuner-note-name ' + (inTune ? 'in-tune' : 'out-tune');
+    centsEl.textContent = cents >= 0 ? `+${Math.round(cents)}¢` : `${Math.round(cents)}¢`;
+    statusEl.textContent = inTune ? 'In Tune' : (cents > 0 ? 'Sharp' : 'Flat');
+    statusEl.className = 'tuner-status' + (inTune ? ' in-tune' : '');
+
+    /* Needle: map cents -50..+50 to rotation -85..+85 degrees */
+    const rotation = Math.max(-85, Math.min(85, cents * 1.7));
+    setNeedle(rotation);
+
+    /* Glow when in tune */
+    document.getElementById('tuner-glow').style.opacity = inTune ? '0.8' : '0';
+  } else {
+    noteEl.textContent = '–';
+    noteEl.className = 'tuner-note-name no-signal';
+    centsEl.textContent = '';
+    statusEl.textContent = 'Listening...';
+    statusEl.className = 'tuner-status';
+    setNeedle(0);
+    document.getElementById('tuner-glow').style.opacity = '0';
+  }
+
+  tunerRaf = requestAnimationFrame(tunerLoop);
+}
+
+function setNeedle(degrees) {
+  const needle = document.getElementById('tuner-needle-g');
+  if (needle) {
+    needle.setAttribute('transform', `rotate(${degrees}, 160, 150)`);
+  }
+}
+
+/* =========================================================
+   EVENT LISTENERS
+   ========================================================= */
+
+/* Nav bar navigation */
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const screen = btn.dataset.screen;
+    if (screen === 'practice' && state.sessionActive) {
+      showScreen('practice');
+    } else {
+      showScreen(screen);
+    }
+  });
+});
+
+/* Start session */
+document.getElementById('start-session-btn').addEventListener('click', () => {
+  startSession();
+});
+
+/* Pause */
+document.getElementById('pause-btn').addEventListener('click', pauseSession);
+
+/* Resume */
+document.getElementById('resume-btn').addEventListener('click', resumeSession);
+
+/* End session */
+document.getElementById('end-session-btn').addEventListener('click', endSession);
+
+/* Settings sliders */
+document.getElementById('set-bpm').addEventListener('input', e => {
+  state.bpm = parseInt(e.target.value);
+  document.getElementById('val-bpm').textContent = state.bpm;
+  document.getElementById('bpm-display').textContent = state.bpm;
+  saveSettings();
+});
+
+document.getElementById('set-tolerance').addEventListener('input', e => {
+  state.tolerance = parseInt(e.target.value);
+  document.getElementById('val-tolerance').innerHTML = state.tolerance + '<small style="font-size:10px;color:var(--text-muted)">ms</small>';
+  saveSettings();
+});
+
+document.getElementById('set-noise').addEventListener('input', e => {
+  state.noiseGate = parseInt(e.target.value);
+  const labels = ['','Very Low','Low','Low-Mid','Mid-Low','Mid','Mid-High','High-Mid','High','Very High','Max'];
+  document.getElementById('val-noise').textContent = labels[state.noiseGate] || state.noiseGate;
+  saveSettings();
+});
+
+/* Difficulty segmented control */
+document.querySelectorAll('#difficulty-control .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#difficulty-control .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.difficulty = btn.dataset.val;
+    saveSettings();
+  });
+});
+
+/* Auto-progression toggle */
+document.getElementById('set-autoprog').addEventListener('change', e => {
+  state.autoProg = e.target.checked;
+  document.getElementById('bpm-arrow').classList.toggle('visible', state.autoProg && state.sessionActive);
+  saveSettings();
+});
+
+document.getElementById('set-cycles').addEventListener('input', e => {
+  state.cyclesRequired = parseInt(e.target.value);
+  document.getElementById('val-cycles').textContent = state.cyclesRequired;
+  saveSettings();
+});
+
+document.getElementById('set-step').addEventListener('input', e => {
+  state.bpmStep = parseInt(e.target.value);
+  document.getElementById('val-step').textContent = state.bpmStep;
+  saveSettings();
+});
+
+/* Open tuner from settings */
+document.getElementById('open-tuner-btn').addEventListener('click', () => {
+  showScreen('tuner');
+});
+
+/* Tuner back button */
+document.getElementById('tuner-back-btn').addEventListener('click', () => {
+  showScreen('settings');
+});
+
+/* Reset stats */
+document.getElementById('reset-stats-btn').addEventListener('click', () => {
+  if (confirm('Reset all statistics? This cannot be undone.')) {
+    localStorage.removeItem(STATS_KEY);
+    renderStats();
+  }
+});
+
+/* =========================================================
+   INITIALISATION
+   ========================================================= */
+loadSettings();
+syncSettingsUI();
+buildStringIndicators();
+/* Render a placeholder stave */
+renderStave('E');
+showScreen('practice');
+</script>
+</body>
+</html>
