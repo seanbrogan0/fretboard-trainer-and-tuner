@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\seanb\\\\BlackBirdStudios\\\\fretboard-trainer-and-tuner\" -Force)",
+      "Bash(Select-Object Name, Mode)"
+    ]
+  }
+}

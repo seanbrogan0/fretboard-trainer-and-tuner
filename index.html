@@ -1,6 +1,6 @@
 <!-- fretboard-trainer/index.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="amber">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -15,7 +15,17 @@
 /* =========================================================
    CSS CUSTOM PROPERTIES & RESET
    ========================================================= */
+/* Layout/typography tokens — not theme-specific */
 :root {
+  --font-display: 'Courier New', 'Lucida Console', monospace;
+  --font-body: 'Georgia', 'Times New Roman', serif;
+  --font-ui: system-ui, -apple-system, sans-serif;
+  --radius: 6px;
+  --nav-height: 56px;
+}
+
+/* Theme: Amber (default — warm dark studio) */
+:root[data-theme="amber"] {
   --bg: #0d0d0f;
   --bg-elevated: #14141a;
   --bg-card: #1a1a22;
@@ -30,11 +40,78 @@
   --accent-blue: #4090e8;
   --note-glow: rgba(240, 238, 232, 0.06);
   --beat-pulse: rgba(232, 160, 32, 0.05);
-  --font-display: 'Courier New', 'Lucida Console', monospace;
-  --font-body: 'Georgia', 'Times New Roman', serif;
-  --font-ui: system-ui, -apple-system, sans-serif;
-  --radius: 6px;
-  --nav-height: 56px;
+}
+
+/* Theme: Phosphor (green CRT terminal) */
+:root[data-theme="phosphor"] {
+  --bg: #020d04;
+  --bg-elevated: #071409;
+  --bg-card: #0a1c0c;
+  --surface: #0f2612;
+  --border: #1a3d1e;
+  --text-primary: #a8f0b0;
+  --text-secondary: #5a9962;
+  --text-muted: #2e5c34;
+  --accent-amber: #40f060;
+  --accent-green: #40f060;
+  --accent-red: #f04040;
+  --accent-blue: #40c0a0;
+  --note-glow: rgba(64, 240, 96, 0.06);
+  --beat-pulse: rgba(64, 240, 96, 0.05);
+}
+
+/* Theme: Slate (cool blue-grey DAW) */
+:root[data-theme="slate"] {
+  --bg: #0a0c10;
+  --bg-elevated: #10141c;
+  --bg-card: #161c28;
+  --surface: #1e2434;
+  --border: #28304a;
+  --text-primary: #dce4f0;
+  --text-secondary: #7888a8;
+  --text-muted: #3c4860;
+  --accent-amber: #5090e8;
+  --accent-green: #38c090;
+  --accent-red: #e84060;
+  --accent-blue: #5090e8;
+  --note-glow: rgba(80, 144, 232, 0.06);
+  --beat-pulse: rgba(80, 144, 232, 0.05);
+}
+
+/* Theme: Ember (deep red low-light) */
+:root[data-theme="ember"] {
+  --bg: #0f0804;
+  --bg-elevated: #180e06;
+  --bg-card: #201208;
+  --surface: #2c1a0a;
+  --border: #3e2410;
+  --text-primary: #f0dcc8;
+  --text-secondary: #9a7058;
+  --text-muted: #5a3c28;
+  --accent-amber: #e85020;
+  --accent-green: #a0c840;
+  --accent-red: #e82020;
+  --accent-blue: #e08030;
+  --note-glow: rgba(232, 80, 32, 0.06);
+  --beat-pulse: rgba(232, 80, 32, 0.05);
+}
+
+/* Theme: Bone (off-white light) */
+:root[data-theme="bone"] {
+  --bg: #f0ece4;
+  --bg-elevated: #e8e2d8;
+  --bg-card: #ddd6c8;
+  --surface: #cec6b4;
+  --border: #b8ae9c;
+  --text-primary: #1a1612;
+  --text-secondary: #5a5040;
+  --text-muted: #9a8e7c;
+  --accent-amber: #c06010;
+  --accent-green: #287040;
+  --accent-red: #c02020;
+  --accent-blue: #2060b0;
+  --note-glow: rgba(26, 22, 18, 0.04);
+  --beat-pulse: rgba(192, 96, 16, 0.06);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -745,7 +822,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .seg-btn.active {
   background: var(--accent-amber);
-  color: #0d0d0f;
+  color: var(--bg); /* contrast against accent on both dark and light themes */
 }
 
 /* Toggle */
@@ -1112,6 +1189,16 @@ input[type="range"]::-moz-range-thumb {
      ===================================================== -->
 <div class="screen" id="screen-settings">
   <div class="scroll-area">
+    <!-- Theme switcher -->
+    <div class="settings-section-title">Theme</div>
+    <div class="seg-control" id="theme-control">
+      <button class="seg-btn active" data-val="amber">Amber</button>
+      <button class="seg-btn" data-val="phosphor">Phosphor</button>
+      <button class="seg-btn" data-val="slate">Slate</button>
+      <button class="seg-btn" data-val="ember">Ember</button>
+      <button class="seg-btn" data-val="bone">Bone</button>
+    </div>
+
     <div class="settings-section-title">Tempo</div>
 
     <div class="setting-row">
@@ -1119,7 +1206,7 @@ input[type="range"]::-moz-range-thumb {
         <span class="setting-name">BPM</span>
         <span class="setting-value" id="val-bpm">60</span>
       </div>
-      <input type="range" id="set-bpm" min="40" max="120" value="60" step="1">
+      <input type="range" id="set-bpm" min="6" max="160" value="60" step="1">
     </div>
 
     <div class="settings-section-title">Detection</div>
@@ -1137,7 +1224,7 @@ input[type="range"]::-moz-range-thumb {
         <span class="setting-name">Noise Gate</span>
         <span class="setting-value" id="val-noise">Mid</span>
       </div>
-      <input type="range" id="set-noise" min="1" max="10" value="5" step="1">
+      <input type="range" id="set-noise" min="0" max="12" value="5" step="1">
     </div>
 
     <div class="settings-section-title">Difficulty</div>
@@ -1230,16 +1317,16 @@ input[type="range"]::-moz-range-thumb {
       <line x1="160" y1="20" x2="160" y2="38" stroke="#38c070" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
       <line x1="290" y1="150" x2="282" y2="132" stroke="#e84040" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
       <!-- Minor ticks -->
-      <line x1="85" y1="26" x2="90" y2="42" stroke="#4a4a5e" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="235" y1="26" x2="230" y2="42" stroke="#4a4a5e" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="85" y1="26" x2="90" y2="42" style="stroke:var(--text-muted)" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="235" y1="26" x2="230" y2="42" style="stroke:var(--text-muted)" stroke-width="1.5" stroke-linecap="round"/>
       <!-- Labels -->
       <text x="20" y="168" fill="#e84040" font-size="11" font-family="Courier New, monospace" opacity="0.7">♭</text>
       <text x="152" y="16" fill="#38c070" font-size="11" font-family="Courier New, monospace">✓</text>
       <text x="295" y="168" fill="#e84040" font-size="11" font-family="Courier New, monospace" opacity="0.7">♯</text>
       <!-- Needle — rotates around pivot (160, 150) -->
       <g id="tuner-needle-g" transform="rotate(0, 160, 150)">
-        <line x1="160" y1="150" x2="160" y2="28" stroke="#f0eee8" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
-        <circle cx="160" cy="150" r="6" fill="#f0eee8" opacity="0.9"/>
+        <line x1="160" y1="150" x2="160" y2="28" style="stroke:var(--text-primary)" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+        <circle cx="160" cy="150" r="6" style="fill:var(--text-primary)" opacity="0.9"/>
         <circle cx="160" cy="150" r="3" fill="var(--bg)" opacity="0.9"/>
       </g>
       <!-- In-tune glow circle (shown when in tune) -->
@@ -1337,6 +1424,7 @@ const state = {
   autoProg: true,
   cyclesRequired: 8,
   bpmStep: 5,
+  theme: 'amber',
 
   /* Session */
   sessionActive: false,
@@ -1617,7 +1705,7 @@ function handleLeadinBeat() {
 function getNoiseGateThreshold() {
   const scale = state.noiseGate; // 1-10
   // Map 1->0.005 (very open), 10->0.08 (tight)
-  return 0.005 + (scale - 1) * (0.075 / 9);
+  return Math.max(0.001, 0.005 + (scale - 1) * (0.075 / 9));
 }
 
 /* Compute RMS amplitude of buffer */
@@ -1820,7 +1908,7 @@ function evaluateCycle() {
 }
 
 function triggerBpmIncrease() {
-  const newBpm = Math.min(120, state.bpm + state.bpmStep);
+  const newBpm = Math.min(160, state.bpm + state.bpmStep);
   if (newBpm === state.bpm) return; // already at max
 
   state.bpm = newBpm;
@@ -1898,38 +1986,38 @@ function renderStave(noteName) {
     const ly = lineY[0] + Math.abs(pos % 2 === 0 ? 0 : STEP);
     for (let lp = -2; lp >= pos; lp -= 2) {
       const ly2 = lineY[0] + Math.abs(lp) * STEP;
-      html += `<line x1="128" y1="${ly2}" x2="172" y2="${ly2}" stroke="#4a4a5e" stroke-width="1.5"/>`;
+      html += `<line x1="128" y1="${ly2}" x2="172" y2="${ly2}" style="stroke:var(--text-muted)" stroke-width="1.5"/>`;
     }
   }
 
   /* Staff lines */
   for (let i = 0; i < 5; i++) {
-    html += `<line x1="40" y1="${lineY[i]}" x2="260" y2="${lineY[i]}" stroke="#2e2e3e" stroke-width="1.5"/>`;
+    html += `<line x1="40" y1="${lineY[i]}" x2="260" y2="${lineY[i]}" style="stroke:var(--border)" stroke-width="1.5"/>`;
   }
 
   /* Ledger lines above staff (pos > 8: lines are at positions 0,2,4,6,8) */
   if (pos >= 10) {
     for (let lp = 10; lp <= pos; lp += 2) {
       const ly2 = lineY[4] - (lp - 8) * STEP;
-      html += `<line x1="128" y1="${ly2}" x2="172" y2="${ly2}" stroke="#4a4a5e" stroke-width="1.5"/>`;
+      html += `<line x1="128" y1="${ly2}" x2="172" y2="${ly2}" style="stroke:var(--text-muted)" stroke-width="1.5"/>`;
     }
   }
 
   /* Accidental symbol */
   if (isSharp) {
-    html += `<text x="122" y="${noteY + 5}" font-size="15" fill="#e8a020" font-family="Georgia, serif" text-anchor="end">♯</text>`;
+    html += `<text x="122" y="${noteY + 5}" font-size="15" style="fill:var(--accent-amber)" font-family="Georgia, serif" text-anchor="end">♯</text>`;
   } else if (isFlat) {
-    html += `<text x="122" y="${noteY + 4}" font-size="15" fill="#e8a020" font-family="Georgia, serif" text-anchor="end">♭</text>`;
+    html += `<text x="122" y="${noteY + 4}" font-size="15" style="fill:var(--accent-amber)" font-family="Georgia, serif" text-anchor="end">♭</text>`;
   }
 
   /* Note head (filled ellipse) */
-  html += `<ellipse cx="150" cy="${noteY}" rx="9" ry="7" fill="#f0eee8" transform="rotate(-12, 150, ${noteY})"/>`;
+  html += `<ellipse cx="150" cy="${noteY}" rx="9" ry="7" style="fill:var(--text-primary)" transform="rotate(-12, 150, ${noteY})"/>`;
 
   /* Note stem (up if pos < 4, down if pos >= 4) */
   if (pos < 4) {
-    html += `<line x1="158.5" y1="${noteY}" x2="158.5" y2="${noteY - 32}" stroke="#f0eee8" stroke-width="1.8"/>`;
+    html += `<line x1="158.5" y1="${noteY}" x2="158.5" y2="${noteY - 32}" style="stroke:var(--text-primary)" stroke-width="1.8"/>`;
   } else {
-    html += `<line x1="141.5" y1="${noteY}" x2="141.5" y2="${noteY + 32}" stroke="#f0eee8" stroke-width="1.8"/>`;
+    html += `<line x1="141.5" y1="${noteY}" x2="141.5" y2="${noteY + 32}" style="stroke:var(--text-primary)" stroke-width="1.8"/>`;
   }
 
   svg.innerHTML = html;
@@ -1954,6 +2042,7 @@ function displayNote(name) {
   el.classList.remove('dim', 'flash');
   void el.offsetWidth;
   el.classList.add('flash');
+  shuffleStringLabels();
 }
 
 function setNoteNameDim(dim) {
@@ -1971,13 +2060,23 @@ function updateStave(noteName) {
 function buildStringIndicators() {
   const row = document.getElementById('strings-row');
   row.innerHTML = '';
-  STRING_NAMES.forEach((name, i) => {
+  for (let i = 0; i < 6; i++) {
     row.innerHTML += `
       <div class="string-ind">
         <div class="string-dot pending" id="str-dot-${i}"></div>
-        <div class="string-label">${name}</div>
+        <div class="string-label">${i + 1}</div>
       </div>`;
-  });
+  }
+}
+
+function shuffleStringLabels() {
+  const nums = [1, 2, 3, 4, 5, 6];
+  for (let i = nums.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [nums[i], nums[j]] = [nums[j], nums[i]];
+  }
+  const labels = document.querySelectorAll('#strings-row .string-label');
+  labels.forEach((el, i) => { el.textContent = nums[i]; });
 }
 
 function resetStringIndicators() {
@@ -2317,6 +2416,7 @@ function loadSettings() {
     if (s.autoProg !== undefined) state.autoProg = s.autoProg;
     if (s.cyclesRequired) state.cyclesRequired = s.cyclesRequired;
     if (s.bpmStep) state.bpmStep = s.bpmStep;
+    if (s.theme) state.theme = s.theme;
   } catch(e) {}
 }
 
@@ -2328,7 +2428,8 @@ function saveSettings() {
     difficulty: state.difficulty,
     autoProg: state.autoProg,
     cyclesRequired: state.cyclesRequired,
-    bpmStep: state.bpmStep
+    bpmStep: state.bpmStep,
+    theme: state.theme
   }));
 }
 
@@ -2338,7 +2439,7 @@ function syncSettingsUI() {
   document.getElementById('set-tolerance').value = state.tolerance;
   document.getElementById('val-tolerance').innerHTML = state.tolerance + '<small style="font-size:10px;color:var(--text-muted)">ms</small>';
   document.getElementById('set-noise').value = state.noiseGate;
-  const noiseLabels = ['','Very Low','Low','Low-Mid','Mid-Low','Mid','Mid-High','High-Mid','High','Very High','Max'];
+  const noiseLabels = ['Off','Very Low','Low','Low-Mid','Mid-Low','Mid','Mid-High','High-Mid','High','Very High','Extra High','Ultra High','Max'];
   document.getElementById('val-noise').textContent = noiseLabels[state.noiseGate] || state.noiseGate;
   document.getElementById('set-autoprog').checked = state.autoProg;
   document.getElementById('set-cycles').value = state.cyclesRequired;
@@ -2350,6 +2451,16 @@ function syncSettingsUI() {
   document.querySelectorAll('#difficulty-control .seg-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.val === state.difficulty);
   });
+
+  /* Theme */
+  document.querySelectorAll('#theme-control .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === state.theme);
+  });
+}
+
+/* Apply a named theme by setting data-theme on the root element */
+function applyTheme(name) {
+  document.documentElement.setAttribute('data-theme', name);
 }
 
 /* =========================================================
@@ -2472,9 +2583,19 @@ document.getElementById('set-tolerance').addEventListener('input', e => {
 
 document.getElementById('set-noise').addEventListener('input', e => {
   state.noiseGate = parseInt(e.target.value);
-  const labels = ['','Very Low','Low','Low-Mid','Mid-Low','Mid','Mid-High','High-Mid','High','Very High','Max'];
+  const labels = ['Off','Very Low','Low','Low-Mid','Mid-Low','Mid','Mid-High','High-Mid','High','Very High','Extra High','Ultra High','Max'];
   document.getElementById('val-noise').textContent = labels[state.noiseGate] || state.noiseGate;
   saveSettings();
+});
+
+/* Theme segmented control */
+document.querySelectorAll('#theme-control .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.theme = btn.dataset.val;
+    applyTheme(state.theme);
+    document.querySelectorAll('#theme-control .seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    saveSettings();
+  });
 });
 
 /* Difficulty segmented control */
@@ -2528,6 +2649,7 @@ document.getElementById('reset-stats-btn').addEventListener('click', () => {
    INITIALISATION
    ========================================================= */
 loadSettings();
+applyTheme(state.theme); /* apply saved theme before first paint */
 syncSettingsUI();
 buildStringIndicators();
 /* Render a placeholder stave */
