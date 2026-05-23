@@ -14,6 +14,8 @@ export const state = {
   cyclesRequired: 8,
   bpmStep: 5,
   theme: 'amber',
+  scalePositionCycles: 3,
+  currentMode: 'practice',  // 'practice' | 'scale'
 
   /* Session */
   sessionActive: false,

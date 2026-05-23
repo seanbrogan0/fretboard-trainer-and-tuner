@@ -4,6 +4,7 @@ import { buildStringIndicators } from './ui.js';
 import { renderStave } from './stave.js';
 import { state, STATS_KEY } from './state.js';
 import { startSession, pauseSession, resumeSession, endSession } from './session.js';
+import { startScaleSession, pauseScaleSession, resumeScaleSession, endScaleSession, scaleState } from './scale-trainer.js';
 import { startTuner, stopTuner } from './tuner.js';
 import { renderStats } from './stats.js';
 import { initPwa } from './pwa.js';
@@ -22,6 +23,11 @@ export function showScreen(name) {
   const nav = document.getElementById('main-nav');
   if (name === 'tuner' || name === 'summary') {
     nav.style.display = 'none';
+  } else if (name === 'scale') {
+    nav.style.display = 'flex';
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.screen === 'scale');
+    });
   } else {
     nav.style.display = 'flex';
     document.querySelectorAll('.nav-btn').forEach(b => {
@@ -43,7 +49,9 @@ export function showScreen(name) {
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const screen = btn.dataset.screen;
-    if (screen === 'practice' && state.sessionActive) {
+    if (screen === 'scale' && scaleState.active) {
+      showScreen('scale');
+    } else if (screen === 'practice' && state.sessionActive) {
       showScreen('practice');
     } else {
       showScreen(screen);
@@ -56,14 +64,28 @@ document.getElementById('start-session-btn').addEventListener('click', () => {
   startSession();
 });
 
-/* Pause */
+/* Start scale session */
+document.getElementById('start-scale-btn').addEventListener('click', () => {
+  startScaleSession();
+});
+
+/* Pause — practice mode */
 document.getElementById('pause-btn').addEventListener('click', pauseSession);
 
-/* Resume */
-document.getElementById('resume-btn').addEventListener('click', resumeSession);
+/* Pause — scale mode */
+document.getElementById('scale-pause-btn').addEventListener('click', pauseScaleSession);
 
-/* End session */
-document.getElementById('end-session-btn').addEventListener('click', endSession);
+/* Resume — routes to active mode */
+document.getElementById('resume-btn').addEventListener('click', () => {
+  if (state.currentMode === 'scale') resumeScaleSession();
+  else resumeSession();
+});
+
+/* End session — routes to active mode */
+document.getElementById('end-session-btn').addEventListener('click', () => {
+  if (state.currentMode === 'scale') endScaleSession();
+  else endSession();
+});
 
 /* Settings sliders */
 document.getElementById('set-bpm').addEventListener('input', e => {
@@ -122,6 +144,12 @@ document.getElementById('set-cycles').addEventListener('input', e => {
 document.getElementById('set-step').addEventListener('input', e => {
   state.bpmStep = parseInt(e.target.value);
   document.getElementById('val-step').textContent = state.bpmStep;
+  saveSettings();
+});
+
+document.getElementById('set-scale-cycles').addEventListener('input', e => {
+  state.scalePositionCycles = parseInt(e.target.value);
+  document.getElementById('val-scale-cycles').textContent = state.scalePositionCycles;
   saveSettings();
 });
 

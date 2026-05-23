@@ -1,5 +1,6 @@
 /* js/stats.js */
 import { STATS_KEY } from './state.js';
+import { renderScaleStats } from './scale-stats.js';
 
 /* =========================================================
    STATS
@@ -22,6 +23,7 @@ export function renderStats() {
     document.getElementById('stats-beat-acc').innerHTML = '–<span class="stat-card-unit">ms</span>';
     document.getElementById('note-table-body').innerHTML = '<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:20px">No data yet</td></tr>';
     document.getElementById('beat-table-body').innerHTML = '';
+    renderScaleStats();
     return;
   }
 
@@ -60,4 +62,6 @@ export function renderStats() {
     return `<tr><td>${n}</td><td>${avg}ms</td><td>${offs.length}</td></tr>`;
   }).join('');
   document.getElementById('beat-table-body').innerHTML = beatRows || '<tr><td colspan="3" style="color:var(--text-muted)">No data</td></tr>';
+
+  renderScaleStats();
 }

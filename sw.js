@@ -5,7 +5,7 @@
    Version the cache name when you deploy a new build so
    old caches are cleaned up on activate.
    ========================================================= */
-const CACHE = 'fretboard-v4';
+const CACHE = 'fretboard-v5';
 
 /* Files to pre-cache on install */
 const SHELL = [
@@ -26,7 +26,11 @@ const SHELL = [
   '/fretboard-trainer-and-tuner/js/stats.js',
   '/fretboard-trainer-and-tuner/js/settings.js',
   '/fretboard-trainer-and-tuner/js/pwa.js',
-  '/fretboard-trainer-and-tuner/js/main.js'
+  '/fretboard-trainer-and-tuner/js/main.js',
+  '/fretboard-trainer-and-tuner/js/scale-trainer.js',
+  '/fretboard-trainer-and-tuner/js/scale-stats.js',
+  '/fretboard-trainer-and-tuner/js/scale-data.js',
+  '/fretboard-trainer-and-tuner/js/fretboard-diagram.js'
 ];
 
 /* Install: cache app shell immediately, skip waiting */

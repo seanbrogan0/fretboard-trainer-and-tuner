@@ -1,0 +1,7 @@
+{
+  "name": "fretboard-trainer",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  }
+}

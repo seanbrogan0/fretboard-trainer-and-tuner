@@ -16,6 +16,7 @@ export function loadSettings() {
     if (s.cyclesRequired) state.cyclesRequired = s.cyclesRequired;
     if (s.bpmStep) state.bpmStep = s.bpmStep;
     if (s.theme) state.theme = s.theme;
+    if (s.scalePositionCycles) state.scalePositionCycles = s.scalePositionCycles;
   } catch(e) {}
 }
 
@@ -28,7 +29,8 @@ export function saveSettings() {
     autoProg: state.autoProg,
     cyclesRequired: state.cyclesRequired,
     bpmStep: state.bpmStep,
-    theme: state.theme
+    theme: state.theme,
+    scalePositionCycles: state.scalePositionCycles
   }));
 }
 
@@ -45,6 +47,8 @@ export function syncSettingsUI() {
   document.getElementById('val-cycles').textContent = state.cyclesRequired;
   document.getElementById('set-step').value = state.bpmStep;
   document.getElementById('val-step').textContent = state.bpmStep;
+  document.getElementById('set-scale-cycles').value = state.scalePositionCycles;
+  document.getElementById('val-scale-cycles').textContent = state.scalePositionCycles;
 
   /* Difficulty */
   document.querySelectorAll('#difficulty-control .seg-btn').forEach(b => {
