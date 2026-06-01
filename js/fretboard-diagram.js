@@ -10,7 +10,7 @@ export function renderFretboardDiagram(scaleId, positionNum, svgElementId, activ
 
   // Full clear and viewBox reset on every call
   svg.innerHTML = '';
-  svg.setAttribute('viewBox', '0 0 280 120');
+  svg.setAttribute('viewBox', '0 0 280 150');
 
   const scale = SCALE_DATA[scaleId];
   if (!scale) return;
@@ -22,7 +22,7 @@ export function renderFretboardDiagram(scaleId, positionNum, svgElementId, activ
   // Layout: left 30 (fret label), right 10, top 15, bottom 15
   const LEFT = 30, TOP = 15;
   const W = 240;   // 280 - 30 - 10
-  const H = 90;    // 120 - 15 - 15
+  const H = 120;   // 150 - 15 - 15
 
   const fretW  = W / fretSpan;   // horizontal gap between fret lines
   const strGap = H / 5;          // vertical gap between string lines (5 gaps, 6 strings)
@@ -71,7 +71,7 @@ export function renderFretboardDiagram(scaleId, positionNum, svgElementId, activ
       y: TOP + H / 2,
       'text-anchor': 'end',
       'dominant-baseline': 'middle',
-      'font-size': '9',
+      'font-size': '10',
       'font-family': 'var(--font-display)',
       fill: 'var(--text-secondary)'
     });
@@ -90,56 +90,42 @@ export function renderFretboardDiagram(scaleId, positionNum, svgElementId, activ
       // Glow halo for active beat highlight — rendered first so it sits behind the dot
       if (isActive) {
         svg.appendChild(el('circle', {
-          cx, cy, r: '15',
+          cx, cy, r: '13',
           fill: 'var(--accent-amber)',
-          opacity: '0.25'
+          opacity: '0.30'
         }));
       }
 
       // Filled dot — roots use accent colour, others use surface with secondary stroke
       if (n.isRoot) {
         svg.appendChild(el('circle', {
-          cx, cy, r: '11',
+          cx, cy, r: '9',
           fill: 'var(--accent-amber)'
         }));
       } else {
         svg.appendChild(el('circle', {
-          cx, cy, r: '10',
+          cx, cy, r: '8',
           fill: 'var(--surface)',
           stroke: 'var(--text-secondary)',
           'stroke-width': '1.5'
         }));
       }
 
-      // Note name centred inside the dot, offset slightly above centre
+      // Note name centred inside the dot (single label — degree shown in ladder below)
       const noteFill = n.isRoot ? 'var(--bg)' : 'var(--text-primary)';
       const noteLbl = el('text', {
         x: cx,
-        y: cy - 2,
+        y: cy,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': '7',
+        'font-size': '8',
         'font-family': 'var(--font-display)',
+        'font-weight': '600',
         fill: noteFill,
         'pointer-events': 'none'
       });
       noteLbl.textContent = n.note;
       svg.appendChild(noteLbl);
-
-      // Degree label below note name, using degreeLabel from the data
-      const degFill = n.isRoot ? 'var(--bg)' : 'var(--text-muted)';
-      const degLbl = el('text', {
-        x: cx,
-        y: cy + 6,
-        'text-anchor': 'middle',
-        'dominant-baseline': 'middle',
-        'font-size': '6',
-        'font-family': 'var(--font-display)',
-        fill: degFill,
-        'pointer-events': 'none'
-      });
-      degLbl.textContent = n.degreeLabel;
-      svg.appendChild(degLbl);
     }
   }
 }

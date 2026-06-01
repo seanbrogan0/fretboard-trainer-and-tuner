@@ -1042,9 +1042,10 @@ input[type="range"]::-moz-range-thumb {
 
 #scale-fretboard-svg {
   width: 100%;
-  max-width: none;
+  max-width: 300px;
   height: auto;
   display: block;
+  margin: 0 auto;
 }
 
 /* Position progress dots */
@@ -1205,7 +1206,3 @@ input[type="range"]::-moz-range-thumb {
   padding-bottom: var(--nav-height);
 }
 
-/* Scale note name is smaller than practice mode to leave room for the fretboard */
-#scale-note-name {
-  font-size: clamp(32px, 9vw, 44px);
-}

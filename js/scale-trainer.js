@@ -43,8 +43,6 @@ function startScaleLeadin() {
   scaleState.inLeadin = true;
   scaleState.leadinBeatsLeft = 4;
   scaleState.currentBeat = 0;
-  const el = document.getElementById('scale-note-name');
-  if (el) { el.textContent = '–'; el.classList.add('dim'); }
 }
 
 function handleScaleLeadinBeat() {
@@ -56,7 +54,6 @@ function handleScaleLeadinBeat() {
       /* Beat 3: show first note, render fretboard highlighted */
       const firstNote = scaleState.noteSequence[0];
       state.currentNote = firstNote;
-      _showScaleNote(firstNote);
       updateStave(firstNote);
       renderFretboardDiagram(
         scaleState.currentScaleId,
@@ -108,7 +105,6 @@ export function handleScaleBeat(beatNum, time) {
     const note = scaleState.noteSequence[scaleState.noteIndex];
     state.currentNote = note;
 
-    _showScaleNote(note);
     updateStave(note);
     _updateDirection();
     renderFretboardDiagram(
@@ -493,16 +489,6 @@ function _buildNoteSequence() {
   /* Precompute note → ladder index for fast lookup */
   scaleState.noteToLadderIdx = {};
   asc.forEach((n, i) => { scaleState.noteToLadderIdx[n] = i; });
-}
-
-/* Display a note name in the scale note zone with a flash */
-function _showScaleNote(note) {
-  const el = document.getElementById('scale-note-name');
-  if (!el) return;
-  el.textContent = note || '–';
-  el.classList.remove('dim', 'flash');
-  void el.offsetWidth;
-  el.classList.add('flash');
 }
 
 /* Watch for the detection window to close, then update degree dot */

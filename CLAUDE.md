@@ -29,6 +29,9 @@ js/
   ui.js             — DOM helpers: beat pulse, note display, string indicators, progress bar
   pwa.js            — initPwa: manifest blob injection + service worker registration
   scale-data.js     — SCALE_DATA (A Major, 5 positions), getScaleIds, getAscending/DescendingSequence
+  scale-trainer.js  — Scale trainer session: scaleState, lead-in, beat handler, auto-progression
+  fretboard-diagram.js — SVG fretboard diagram renderer with active-note highlight
+  scale-stats.js    — loadScaleStats, saveScaleStats, renderScaleStats (appends to stats screen)
 sw.js               — Service worker: cache-first strategy, app shell pre-caching
 ```
 
@@ -65,9 +68,10 @@ Five `<div class="screen">` elements toggled by `showScreen(name)` in `main.js`:
 
 `js/state.js` exports a single mutable `state` object that all modules import directly. It holds both persisted settings (bpm, tolerance, noiseGate, difficulty, autoProg, etc.) and transient session state (sessionActive, currentNote, cycleResults, detectionActive, etc.). There is no reactive layer — modules read and mutate `state` directly.
 
-Persistence uses two `localStorage` keys exported from `state.js`:
-- `SETTINGS_KEY = 'ft_settings'` — user preferences, loaded on startup via `loadSettings()`
-- `STATS_KEY = 'ft_stats'` — cumulative per-note accuracy data, keyed by canonical note name
+Persistence uses `localStorage` keys:
+- `SETTINGS_KEY = 'ft_settings'` (from `state.js`) — user preferences, loaded on startup via `loadSettings()`
+- `STATS_KEY = 'ft_stats'` (from `state.js`) — cumulative per-note accuracy data, keyed by canonical note name
+- `SCALE_STATS_KEY = 'ft_scale_stats'` (from `scale-stats.js`) — scale trainer accuracy keyed by `'scaleId_posN'`
 
 ## Key Architectural Patterns
 
@@ -115,18 +119,22 @@ The web app manifest has no static `.json` file — it is generated as a JavaScr
 Current cache version in `sw.js`:
 
 ```js
-const CACHE = 'fretboard-v4';
+const CACHE = 'fretboard-v5';
 ```
 
 Bump this string whenever you deploy a change so users' browsers replace the old cached app shell. The `SHELL` array lists every file that must be pre-cached on install — add new JS or CSS files to it when you create them.
 
-## Scale Data (`js/scale-data.js`)
+## Scale Trainer (`js/scale-trainer.js`, `js/scale-data.js`, `js/fretboard-diagram.js`, `js/scale-stats.js`)
 
-`SCALE_DATA` holds hardcoded fretboard position data for guitar scales. Currently contains A Major with all 5 CAGED-style positions. The structure is keyed by scale ID string; each entry has `notes` (degree-ordered array), `positions` (array of 5 position objects), and per-string note arrays with `{ fret, note, degree, isRoot, degreeLabel }`.
+The scale trainer is a separate session mode from the note-recognition trainer. It uses its own `scaleState` object (exported from `scale-trainer.js`) rather than `state`, mirroring the same metronome/detection infrastructure.
 
-This file is not yet imported by any other module — it is prepared for a forthcoming scale trainer feature. Adding a new scale means adding one entry to `SCALE_DATA` with no structural changes.
+**Session flow**: same lead-in and 8-beat cycle structure as the note trainer. Beats 1–6 map to notes in the ascending or descending scale sequence. After each cycle the direction may flip; after enough clean cycles the BPM auto-increments. `cycleResults` is local to `scaleState` and doesn't touch the global `state`.
 
-Helper exports: `getScaleIds()`, `getAscendingSequence(scaleId, positionNum)`, `getDescendingSequence(scaleId, positionNum)`.
+**`SCALE_DATA`** is keyed by scale ID string; each entry has `notes` (degree-ordered), `positions` (array of 5 CAGED-style position objects), and per-string note arrays with `{ fret, note, degree, isRoot, degreeLabel }`. Adding a new scale means adding one entry — no structural changes needed. Helper exports: `getScaleIds()`, `getAscendingSequence(scaleId, positionNum)`, `getDescendingSequence(scaleId, positionNum)`.
+
+**`renderFretboardDiagram(scaleId, positionNum, svgElementId, activeNote)`** in `fretboard-diagram.js` renders an SVG fretboard grid into an existing `<svg>` element. The optional `activeNote` argument adds a glow highlight to the matching dot. Called on each beat during a scale session to track the player's position.
+
+**Scale stats** (`scale-stats.js`) are stored separately from note stats under `ft_scale_stats` and appended to the stats screen by `renderScaleStats()`.
 
 ## Notes for Developers
 
