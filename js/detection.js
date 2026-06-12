@@ -36,7 +36,7 @@ export function openDetectionWindow(stringIndex, beatTime) {
     const freq = detectPitch(micBuffer, audioCtx.sampleRate);
     const elapsed = performance.now() - startMs;
 
-    if (freq > 0 && !state.detectionResult) {
+    if (freq > 0) {
       /* Got a reading */
       const detected = freqToNoteName(freq);
       const target = TO_CANONICAL[state.currentNote];
@@ -48,10 +48,9 @@ export function openDetectionWindow(stringIndex, beatTime) {
         state.detectionResult = { type: 'hit', offset: beatOffset };
         finaliseDetection(false);
         return;
-      } else {
+      } else if (!state.detectionResult) {
+        /* Record first wrong reading but keep polling — a later correct note can still win */
         state.detectionResult = { type: 'wrong', offset: beatOffset };
-        finaliseDetection(false);
-        return;
       }
     }
 
@@ -91,19 +90,21 @@ export function finaliseDetection(timedOut) {
     offset: result.offset
   });
 
-  /* Update session data */
-  const canonical = TO_CANONICAL[state.currentNote] || state.currentNote;
-  if (!state.sessionData[canonical]) {
-    state.sessionData[canonical] = { attempts: 0, correct: 0, wrongNote: 0, missed: 0, beatOffsets: [] };
-  }
-  const sd = state.sessionData[canonical];
-  sd.attempts++;
-  if (result.type === 'hit') {
-    sd.correct++;
-    if (result.offset !== null) sd.beatOffsets.push(result.offset);
-  } else if (result.type === 'wrong') {
-    sd.wrongNote++;
-  } else {
-    sd.missed++;
+  /* Update session data — skip in scale mode to avoid polluting note-trainer stats */
+  if (state.currentMode !== 'scale') {
+    const canonical = TO_CANONICAL[state.currentNote] || state.currentNote;
+    if (!state.sessionData[canonical]) {
+      state.sessionData[canonical] = { attempts: 0, correct: 0, wrongNote: 0, missed: 0, beatOffsets: [] };
+    }
+    const sd = state.sessionData[canonical];
+    sd.attempts++;
+    if (result.type === 'hit') {
+      sd.correct++;
+      if (result.offset !== null) sd.beatOffsets.push(result.offset);
+    } else if (result.type === 'wrong') {
+      sd.wrongNote++;
+    } else {
+      sd.missed++;
+    }
   }
 }
