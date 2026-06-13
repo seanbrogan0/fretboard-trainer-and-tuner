@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { initAudio, startMic, scheduleClick, audioCtx, micStream } from './audio.js';
 import { startMetronome, stopMetronome, resumeMetronome } from './metronome.js';
 import { openDetectionWindow, finaliseDetection } from './detection.js';
-import { triggerBeatPulse, showCountin, flashProgBar } from './ui.js';
+import { triggerBeatPulse, showCountin, flashProgBar, updateProgBar } from './ui.js';
 import { updateStave } from './stave.js';
 import { renderFretboardDiagram } from './fretboard-diagram.js';
 import { SCALE_DATA, getScaleIds, getAscendingSequence, getDescendingSequence } from './scale-data.js';
@@ -171,7 +171,7 @@ export function evaluateScaleCycle() {
 
   /* Update scale progression bar */
   const pct = Math.min(100, (scaleState.cleanStreak / state.cyclesRequired) * 100);
-  _updateScaleProgBar(pct);
+  updateProgBar(pct, false, 'scale-prog-bar-fill');
 
   /* Persist per-position accuracy */
   const posKey = `${scaleState.currentScaleId}_pos${scaleState.currentPosition}`;
@@ -209,8 +209,8 @@ function _triggerScaleBpmIncrease() {
     setTimeout(() => scaleBpmEl.classList.remove('bump'), 300);
   }
   document.getElementById('scale-bpm-arrow')?.classList.add('visible');
-  _flashScaleProgBar();
-  _updateScaleProgBar(0);
+  flashProgBar('scale-prog-bar-fill');
+  updateProgBar(0, false, 'scale-prog-bar-fill');
 }
 
 /* =========================================================
@@ -252,7 +252,7 @@ export function advancePosition() {
     updateScalePositionDots();
     _updateKeyDisplay();
     _updateCyclesCounter();
-    _updateScaleProgBar(0);
+    updateProgBar(0, false, 'scale-prog-bar-fill');
     _resetAllDegreeDots();
   }, 100);
 }
@@ -292,7 +292,7 @@ export function startScaleSession() {
   document.getElementById('scale-bpm-arrow').classList.toggle('visible', state.autoProg);
   _updateKeyDisplay();
   _updateCyclesCounter();
-  _updateScaleProgBar(0);
+  updateProgBar(0, false, 'scale-prog-bar-fill');
   updateScalePositionDots();
   buildScaleDegreeLadder(scaleState.currentScaleId, scaleState.currentPosition);
   renderFretboardDiagram(
@@ -553,21 +553,6 @@ function _updateCyclesCounter() {
   const el = document.getElementById('scale-cycles-counter');
   if (!el) return;
   el.textContent = `Cycle ${scaleState.cyclesOnPosition} / ${state.scalePositionCycles}`;
-}
-
-/* Update the vertical progression bar on the scale screen */
-function _updateScaleProgBar(pct) {
-  const fill = document.getElementById('scale-prog-bar-fill');
-  if (!fill) return;
-  fill.style.height = pct + '%';
-  fill.className = 'prog-bar-fill' + (pct > 60 ? ' green' : '');
-}
-
-function _flashScaleProgBar() {
-  const fill = document.getElementById('scale-prog-bar-fill');
-  if (!fill) return;
-  fill.classList.add('flash-anim');
-  setTimeout(() => fill.classList.remove('flash-anim'), 700);
 }
 
 /* Show the position announcement overlay for 1500ms */

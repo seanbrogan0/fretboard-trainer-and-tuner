@@ -29,16 +29,21 @@ export function setNoteNameDim(dim) {
 }
 
 /* String indicator management */
+let _stringDots = []; // cached after buildStringIndicators
+
 export function buildStringIndicators() {
   const row = document.getElementById('strings-row');
-  row.innerHTML = '';
+  const html = [];
   for (let i = 0; i < 6; i++) {
-    row.innerHTML += `
+    html.push(`
       <div class="string-ind">
         <div class="string-dot pending" id="str-dot-${i}"></div>
         <div class="string-label">${i + 1}</div>
-      </div>`;
+      </div>`);
   }
+  row.innerHTML = html.join('');
+  _stringDots = [];
+  for (let i = 0; i < 6; i++) _stringDots.push(document.getElementById(`str-dot-${i}`));
 }
 
 function shuffleStringLabels() {
@@ -53,7 +58,7 @@ function shuffleStringLabels() {
 
 export function resetStringIndicators() {
   for (let i = 0; i < 6; i++) {
-    const dot = document.getElementById(`str-dot-${i}`);
+    const dot = _stringDots[i];
     if (dot) dot.className = 'string-dot pending';
   }
 }
@@ -63,45 +68,38 @@ export function setStringsPending() {
 }
 
 export function setActiveString(index) {
-  /* Clear active from all, set active on this one */
   for (let i = 0; i < 6; i++) {
-    const dot = document.getElementById(`str-dot-${i}`);
-    if (!dot) continue;
-    if (dot.classList.contains('active')) {
-      dot.classList.remove('active');
-      // Leave state as pending if not already set
-    }
+    const dot = _stringDots[i];
+    if (dot && dot.classList.contains('active')) dot.classList.remove('active');
   }
-  const dot = document.getElementById(`str-dot-${index}`);
-  if (dot && dot.classList.contains('pending')) {
-    dot.className = 'string-dot active';
-  }
+  const dot = _stringDots[index];
+  if (dot && dot.classList.contains('pending')) dot.className = 'string-dot active';
 }
 
 export function clearActiveString() {
   for (let i = 0; i < 6; i++) {
-    const dot = document.getElementById(`str-dot-${i}`);
-    if (dot && dot.classList.contains('active')) {
-      dot.classList.remove('active');
-    }
+    const dot = _stringDots[i];
+    if (dot && dot.classList.contains('active')) dot.classList.remove('active');
   }
 }
 
 export function updateStringIndicator(index, type) {
-  const dot = document.getElementById(`str-dot-${index}`);
+  const dot = _stringDots[index];
   if (!dot) return;
   dot.className = `string-dot ${type}`;
 }
 
-/* Progression bar */
-export function updateProgBar(pct, isClean) {
-  const fill = document.getElementById('prog-bar-fill');
+/* Progression bar — fillId defaults to the practice screen's bar */
+export function updateProgBar(pct, isClean, fillId = 'prog-bar-fill') {
+  const fill = document.getElementById(fillId);
+  if (!fill) return;
   fill.style.height = pct + '%';
   fill.className = 'prog-bar-fill' + (pct > 60 ? ' green' : '');
 }
 
-export function flashProgBar() {
-  const fill = document.getElementById('prog-bar-fill');
+export function flashProgBar(fillId = 'prog-bar-fill') {
+  const fill = document.getElementById(fillId);
+  if (!fill) return;
   fill.classList.add('flash-anim');
   setTimeout(() => fill.classList.remove('flash-anim'), 700);
 }
