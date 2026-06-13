@@ -16,6 +16,9 @@ export function computeRms(buf) {
   return Math.sqrt(sum / buf.length);
 }
 
+/* Reusable autocorrelation buffer — allocated once, never per-frame */
+let _corrBuf = null;
+
 /* Autocorrelation pitch detection.
    Returns frequency in Hz, or -1 if not confident. */
 export function detectPitch(buf, sampleRate) {
@@ -26,7 +29,8 @@ export function detectPitch(buf, sampleRate) {
   if (rms < getNoiseGateThreshold()) return -1;
 
   /* Autocorrelation */
-  const corr = new Float32Array(SIZE);
+  if (!_corrBuf || _corrBuf.length !== SIZE) _corrBuf = new Float32Array(SIZE);
+  const corr = _corrBuf;
   for (let lag = 0; lag < SIZE; lag++) {
     let sum = 0;
     for (let i = 0; i < SIZE - lag; i++) sum += buf[i] * buf[i + lag];
