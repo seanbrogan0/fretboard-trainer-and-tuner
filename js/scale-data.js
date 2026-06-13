@@ -211,6 +211,188 @@ export const SCALE_DATA = {
     ],
   },
 
+  aMinorPentatonic: {
+    id: 'aMinorPentatonic',
+    name: 'A Minor Pentatonic',
+    noteCount: 5,
+    // Scale degrees: 1=A  b3=C  4=D  5=E  b7=G
+    notes: ['A', 'C', 'D', 'E', 'G'],
+
+    positions: [
+
+      // Position 1 — Em-shape box, root A at fret 5
+      {
+        positionNum: 1,
+        label: '5th fret',
+        lowestFret: 5,
+        fretSpan: 4,
+        strings: {
+          6: [
+            { fret: 5, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+            { fret: 8, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+          ],
+          5: [
+            { fret: 5, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+            { fret: 7, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+          ],
+          4: [
+            { fret: 5, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+            { fret: 7, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+          ],
+          3: [
+            { fret: 5, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+            { fret: 7, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+          ],
+          2: [
+            { fret: 5, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+            { fret: 8, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+          ],
+          1: [
+            { fret: 5, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+            { fret: 8, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+          ],
+        },
+      },
+
+      // Position 2 — Dm-shape box, frets 7-10
+      {
+        positionNum: 2,
+        label: '7th fret',
+        lowestFret: 7,
+        fretSpan: 4,
+        strings: {
+          6: [
+            { fret: 8,  note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+            { fret: 10, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+          ],
+          5: [
+            { fret: 7,  note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+            { fret: 10, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+          ],
+          4: [
+            { fret: 7,  note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+            { fret: 10, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+          ],
+          3: [
+            { fret: 7,  note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+            { fret: 9,  note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+          ],
+          2: [
+            { fret: 8,  note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+            { fret: 10, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+          ],
+          1: [
+            { fret: 8,  note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+            { fret: 10, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+          ],
+        },
+      },
+
+      // Position 3 — Cm-shape box, frets 9-13
+      {
+        positionNum: 3,
+        label: '9th fret',
+        lowestFret: 9,
+        fretSpan: 4,
+        strings: {
+          6: [
+            { fret: 10, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+            { fret: 12, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+          ],
+          5: [
+            { fret: 10, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+            { fret: 12, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+          ],
+          4: [
+            { fret: 10, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+            { fret: 12, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+          ],
+          3: [
+            { fret: 9,  note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+            { fret: 12, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+          ],
+          2: [
+            { fret: 10, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+            { fret: 13, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+          ],
+          1: [
+            { fret: 10, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+            { fret: 12, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+          ],
+        },
+      },
+
+      // Position 4 — Am-shape box, frets 12-15
+      {
+        positionNum: 4,
+        label: '12th fret',
+        lowestFret: 12,
+        fretSpan: 4,
+        strings: {
+          6: [
+            { fret: 12, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+            { fret: 15, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+          ],
+          5: [
+            { fret: 12, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+            { fret: 15, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+          ],
+          4: [
+            { fret: 12, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+            { fret: 14, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+          ],
+          3: [
+            { fret: 12, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+            { fret: 14, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+          ],
+          2: [
+            { fret: 13, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+            { fret: 15, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+          ],
+          1: [
+            { fret: 12, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+            { fret: 15, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+          ],
+        },
+      },
+
+      // Position 5 — Gm-shape box, frets 14-17; connects back to position 1 an octave up
+      {
+        positionNum: 5,
+        label: '14th fret',
+        lowestFret: 14,
+        fretSpan: 4,
+        strings: {
+          6: [
+            { fret: 15, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+            { fret: 17, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+          ],
+          5: [
+            { fret: 15, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+            { fret: 17, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+          ],
+          4: [
+            { fret: 14, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+            { fret: 17, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+          ],
+          3: [
+            { fret: 14, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+            { fret: 17, note: 'C', degree: 2, isRoot: false, degreeLabel: 'b3' },
+          ],
+          2: [
+            { fret: 15, note: 'D', degree: 3, isRoot: false, degreeLabel: '4'  },
+            { fret: 17, note: 'E', degree: 4, isRoot: false, degreeLabel: '5'  },
+          ],
+          1: [
+            { fret: 15, note: 'G', degree: 5, isRoot: false, degreeLabel: 'b7' },
+            { fret: 17, note: 'A', degree: 1, isRoot: true,  degreeLabel: '1'  },
+          ],
+        },
+      },
+
+    ],
+  },
+
 };
 
 // Returns all scale IDs currently registered in SCALE_DATA
