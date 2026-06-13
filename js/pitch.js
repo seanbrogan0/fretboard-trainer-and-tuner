@@ -35,7 +35,7 @@ export function detectPitch(buf, sampleRate) {
 
   /* Find first significant drop then rise (fundamental period) */
   let d = 0;
-  while (d < SIZE && corr[d] > corr[d + 1]) d++;
+  while (d < SIZE - 1 && corr[d] > corr[d + 1]) d++;
 
   /* Find peak after the initial drop */
   let maxVal = -1, maxPos = -1;

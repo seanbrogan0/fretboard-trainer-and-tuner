@@ -10,7 +10,7 @@ export function loadSettings() {
     if (!s) return;
     if (s.bpm) state.bpm = s.bpm;
     if (s.tolerance) state.tolerance = s.tolerance;
-    if (s.noiseGate) state.noiseGate = s.noiseGate;
+    if (s.noiseGate !== undefined) state.noiseGate = s.noiseGate;
     if (s.difficulty) state.difficulty = s.difficulty;
     if (s.autoProg !== undefined) state.autoProg = s.autoProg;
     if (s.cyclesRequired) state.cyclesRequired = s.cyclesRequired;

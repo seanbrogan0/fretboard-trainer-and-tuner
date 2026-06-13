@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { initAudio, startMic, scheduleClick, audioCtx, micStream } from './audio.js';
 import { startMetronome, stopMetronome, resumeMetronome } from './metronome.js';
 import { openDetectionWindow, finaliseDetection } from './detection.js';
-import { triggerBeatPulse, showCountin, animateBpmBump, flashProgBar } from './ui.js';
+import { triggerBeatPulse, showCountin, flashProgBar } from './ui.js';
 import { updateStave } from './stave.js';
 import { renderFretboardDiagram } from './fretboard-diagram.js';
 import { SCALE_DATA, getScaleIds, getAscendingSequence, getDescendingSequence } from './scale-data.js';
@@ -200,10 +200,15 @@ function _triggerScaleBpmIncrease() {
   if (newBpm === state.bpm) return;
   state.bpm = newBpm;
   state._nextBeatHighPitch = true;
-  /* Update scale screen's BPM display directly; animateBpmBump targets practice screen */
   const scaleBpmEl = document.getElementById('scale-bpm-display');
-  if (scaleBpmEl) { scaleBpmEl.textContent = newBpm; }
-  animateBpmBump(newBpm);
+  if (scaleBpmEl) {
+    scaleBpmEl.classList.remove('bump');
+    void scaleBpmEl.offsetWidth;
+    scaleBpmEl.textContent = newBpm;
+    scaleBpmEl.classList.add('bump');
+    setTimeout(() => scaleBpmEl.classList.remove('bump'), 300);
+  }
+  document.getElementById('scale-bpm-arrow')?.classList.add('visible');
   _flashScaleProgBar();
   _updateScaleProgBar(0);
 }

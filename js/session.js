@@ -259,7 +259,7 @@ export function showSummary() {
   const avgOffset = allOffsets.length ? Math.round(allOffsets.reduce((a,b)=>a+b,0)/allOffsets.length) : null;
 
   /* Weakest/strongest note */
-  let weakNote = '–', strongNote = '–', weakRate = 1, strongRate = 0;
+  let weakNote = '–', strongNote = '–', weakRate = 1, strongRate = -1;
   notes.forEach(n => {
     const r = sd[n].attempts ? sd[n].correct / sd[n].attempts : 0;
     if (r < weakRate) { weakRate = r; weakNote = n; }
